@@ -71,6 +71,16 @@
                     <ScrollPane fitToWidth="true">
                         <VBox spacing="10.0" style="-fx-padding: 10;">
                             <Button fx:id="gaRunButton" text="Перезапустить алгоритм"/>
+                            <Label text="Макс. число поколений"/>
+                            <Spinner fx:id="gaMaxGenerations"/>
+                            <Label text="Размер популяции"/>
+                            <Spinner fx:id="gaPopulationSize"/>
+                            <Label text="Доля лучших особей"/>
+                            <Spinner fx:id="gaCopyBestRate"/>
+                            <Label text="Вероятность мутации"/>
+                            <Spinner fx:id="gaMutationRate"/>
+                            <Label text="Вероятность скрещивания"/>
+                            <Spinner fx:id="gaCrossoverRate"/>
                         </VBox>
                     </ScrollPane>
                 </content>

@@ -98,6 +98,21 @@ public class MainGuiController {
     private Button gaRunButton;
 
     @FXML
+    private Spinner<Integer> gaMaxGenerations;
+
+    @FXML
+    private Spinner<Integer> gaPopulationSize;
+
+    @FXML
+    private Spinner<Double> gaCopyBestRate;
+
+    @FXML
+    private Spinner<Double> gaMutationRate;
+
+    @FXML
+    private Spinner<Double> gaCrossoverRate;
+
+    @FXML
     private Spinner<Integer> visualizationCurrentGenerationSpinner;
 
     @FXML
@@ -191,6 +206,40 @@ public class MainGuiController {
                 Platform.runLater(this::renderAll);
             });
         });
+
+        var config = session.getGeneticAlgorithm().getConfig();
+
+        gaMaxGenerations.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, config.getIterationsPerRun()));
+        gaPopulationSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, config.getPopulationSize()));
+        gaCopyBestRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getCopyBestRate(), 0.01));
+        gaMutationRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getMutationRate(), 0.01));
+        gaCrossoverRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getCrossoverRate(), 0.01));
+
+        gaMaxGenerations.valueProperty().addListener((obs, oldVal, newVal) -> {
+            session.getGeneticAlgorithm().getConfig().setIterationsPerRun(newVal);
+        });
+
+        gaPopulationSize.valueProperty().addListener((obs, oldVal, newVal) -> {
+            session.getGeneticAlgorithm().getConfig().setPopulationSize(newVal);
+        });
+
+        gaCopyBestRate.valueProperty().addListener((obs, oldVal, newVal) -> {
+            session.getGeneticAlgorithm().getConfig().setCopyBestRate(newVal);
+        });
+
+        gaMutationRate.valueProperty().addListener((obs, oldVal, newVal) -> {
+            session.getGeneticAlgorithm().getConfig().setMutationRate(newVal);
+        });
+
+        gaCrossoverRate.valueProperty().addListener((obs, oldVal, newVal) -> {
+            session.getGeneticAlgorithm().getConfig().setCrossoverRate(newVal);
+        });
+
+        gaMaxGenerations.setEditable(true);
+        gaPopulationSize.setEditable(true);
+        gaCopyBestRate.setEditable(true);
+        gaMutationRate.setEditable(true);
+        gaCrossoverRate.setEditable(true);
 
 
         visualizationCurrentGenerationSpinner.setValueFactory(

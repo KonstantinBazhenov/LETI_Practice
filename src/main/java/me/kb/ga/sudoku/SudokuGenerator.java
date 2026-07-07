@@ -11,35 +11,36 @@ import java.util.Random;
 @UtilityClass
 public class SudokuGenerator {
 
-    public SudokuBoard generate(Random random, int keepNumbers) {
-        int[][] board = new int[9][9];
+    public SudokuArrayMatrix generate(Random random, SudokuType type, int keepNumbers) {
+        int size = type.getSize();
+        int[][] board = new int[size][size];
 
-        for (int row = 0; row < 9; row++) {
-            for (int col = 0; col < 9; col++) {
-                board[row][col] = (row * 3 + row / 3 + col) % 9 + 1;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                board[x][y] = (y * type.getBlockWidth() + y / type.getBlockHeight() + x) % size + 1;
             }
         }
 
         List<int[]> cells = new ArrayList<>();
 
-        for (int r = 0; r < 9; r++) {
-            for (int c = 0; c < 9; c++) {
-                cells.add(new int[]{r, c});
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                cells.add(new int[]{x, y});
             }
         }
 
         Collections.shuffle(cells, random);
 
-        int removed = 0;
-        int targetRemoved = 9 * 9 - keepNumbers;
+        int targetRemoved = size * size - keepNumbers;
 
-        for (int[] cell : cells) {
-            if (removed >= targetRemoved) break;
-            board[cell[0]][cell[1]] = 0;
+        for (int i = 0; i < targetRemoved; i++) {
+            int[] cell = cells.get(i);
+            int x = cell[0];
+            int y = cell[1];
 
-            removed++;
+            board[x][y] = 0;
         }
 
-        return new SudokuBoard(new SudokuArrayMatrix(board));
+        return new SudokuArrayMatrix(board);
     }
 }

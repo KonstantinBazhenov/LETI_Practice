@@ -1,13 +1,15 @@
 package me.kb.ga.data;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Data;
 
 @Builder(toBuilder = true)
 @Data
 public class GAConfig {
-    @Builder.Default
-    private int maxRuns = 20;
+    private static final ObjectMapper mapper = new ObjectMapper();
+
     @Builder.Default
     private int iterationsPerRun = 100;
     @Builder.Default
@@ -54,5 +56,14 @@ public class GAConfig {
                 similarityThreshold >= 0 && similarityThreshold <= 1 &&
                 similarityPunishment >= 0 &&
                 similarityCompare >= 0;
+    }
+
+
+    public JsonNode toJson() {
+        return mapper.valueToTree(this);
+    }
+
+    public static GAConfig fromJson(JsonNode json) {
+        return mapper.convertValue(json, GAConfig.class);
     }
 }

@@ -6,7 +6,7 @@ import me.kb.ga.algorithm.impl.initializer.InitializerBlockPermutations;
 import me.kb.ga.algorithm.impl.mutate.MutateBlockPermutations;
 import me.kb.ga.algorithm.impl.selector.SelectorRankedWeightedRandom;
 import me.kb.ga.data.GAConfig;
-import me.kb.ga.data.GeneticAlgorithmResult;
+import me.kb.ga.data.RunResult;
 import me.kb.ga.sudoku.*;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public class Main {
 
 
             SudokuType type = SudokuType.SUDOKU_9;
-            SudokuBoard board = SudokuGenerator.generate(new Random(), 30);
+            SudokuBoard board = new SudokuBoard(SudokuGenerator.generate(new Random(), type, 30));
 
             SudokuTask task = new SudokuTask(board);
 
@@ -28,7 +28,6 @@ public class Main {
             GeneticAlgorithm<List<Integer>> geneticAlgorithm = new GeneticAlgorithm<>(
                     new Random(),
                     GAConfig.builder()
-                            .maxRuns(1)
                             .iterationsPerRun(3000)
                             .populationSize(500)
                             .mutationRate(0.09)
@@ -47,9 +46,8 @@ public class Main {
                     task
             );
 
-            GeneticAlgorithmResult<List<Integer>> result = geneticAlgorithm.run();
-            System.out.println("Best score: " + result.getBest().getScore() + " Runs: " + result.getRuns().size()
-                    + " Last run generations: " + result.getRuns().get(result.getRuns().size() - 1).getGenerations().size());
+            RunResult<List<Integer>> result = geneticAlgorithm.run();
+            System.out.println("Best score: " + result.getBest().getScore() + " Generations: " + result.getGenerations().size());
             SudokuUtils.printBoard(result.getBest().getDna());
         }
 

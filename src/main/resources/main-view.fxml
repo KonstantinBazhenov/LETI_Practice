@@ -1,14 +1,94 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<GridPane xmlns:fx="http://javafx.com/fxml/1" fx:id="root" prefWidth="900.0" prefHeight="600.0" minWidth="800.0"
+          minHeight="600.0" hgap="10.0" xmlns="http://javafx.com/javafx/26"
+          fx:controller="me.kb.ga.gui.MainGuiController"
+          style="-fx-background-color: #CFCFCF;">
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="me.kb.ga.gui.MainGuiController"
-            prefHeight="400.0" prefWidth="600.0">
+    <padding>
+        <Insets top="10.0" right="10.0" bottom="10.0" left="10.0"/>
+    </padding>
 
-</AnchorPane>
+    <columnConstraints>
+        <ColumnConstraints percentWidth="70.0"/>
+        <ColumnConstraints percentWidth="30.0"/>
+    </columnConstraints>
+
+    <rowConstraints>
+        <RowConstraints percentHeight="100.0"/>
+    </rowConstraints>
+
+    <VBox fx:id="leftColumn" spacing="10.0" minWidth="200.0" minHeight="500.0" maxWidth="Infinity" maxHeight="Infinity"
+          GridPane.columnIndex="0" GridPane.rowIndex="0">
+
+        <StackPane fx:id="graphContainer" alignment="TOP_LEFT" minWidth="100.0" minHeight="100.0" maxWidth="Infinity">
+            <LineChart fx:id="graph" animated="false" createSymbols="false" legendVisible="false">
+                <xAxis>
+                    <NumberAxis label="Поколение" fx:id="graphXAxis"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis label="Fitness" lowerBound="0.0" upperBound="1.0" tickUnit="0.1"/>
+                </yAxis>
+            </LineChart>
+        </StackPane>
+
+        <TextArea fx:id="text" editable="false" wrapText="true" minHeight="100.0" maxWidth="Infinity"
+                  maxHeight="Infinity" VBox.vgrow="ALWAYS"/>
+    </VBox>
+
+    <VBox fx:id="rightColumn" spacing="10.0" minWidth="200.0" minHeight="300.0" maxWidth="Infinity" maxHeight="Infinity"
+          GridPane.columnIndex="1" GridPane.rowIndex="0">
+
+        <StackPane fx:id="sudokuContainer" alignment="TOP_RIGHT" minWidth="50.0" minHeight="50.0" maxWidth="Infinity">
+            <Canvas fx:id="sudoku"/>
+        </StackPane>
+
+        <TabPane fx:id="config" tabClosingPolicy="UNAVAILABLE" tabMinHeight="20.0" tabMinWidth="30.0" minHeight="100.0"
+                 maxWidth="Infinity" maxHeight="Infinity" style="-fx-background-color: #AFAFAF;" VBox.vgrow="ALWAYS">
+            <Tab text="Судоку">
+                <content>
+                    <ScrollPane fitToWidth="true">
+                        <VBox spacing="10.0" style="-fx-padding: 10;">
+                            <Label text="Тип судоку"/>
+                            <ComboBox fx:id="sudokuTypeComboBox"/>
+                            <Label text="Количество заполненных клеток"/>
+                            <Spinner fx:id="sudokuFilledCellsSpinner"/>
+                            <Button fx:id="sudokuGenerateButton" text="Сгенерировать"/>
+                            <Button fx:id="sudokuLoadButton" text="Загрузить из файла"/>
+                            <Button fx:id="sudokuSaveButton" text="Сохранить в файл"/>
+                        </VBox>
+                    </ScrollPane>
+                </content>
+            </Tab>
+            <Tab text="Алгоритм">
+                <content>
+                    <ScrollPane fitToWidth="true">
+                        <VBox spacing="10.0" style="-fx-padding: 10;">
+                            <Button fx:id="gaRunButton" text="Перезапустить алгоритм"/>
+                        </VBox>
+                    </ScrollPane>
+                </content>
+            </Tab>
+            <Tab text="Отображение">
+                <content>
+                    <ScrollPane fitToWidth="true">
+                        <VBox spacing="10.0" style="-fx-padding: 10;">
+                            <Label text="Отображаемое поколение"/>
+                            <Spinner fx:id="visualizationCurrentGenerationSpinner"/>
+                            <Label text="Отображаемый экземпляр"/>
+                            <Spinner fx:id="visualizationCurrentDnaSpinner"/>
+                            <Button fx:id="visualizationSkipToResultButton" text="Перейти к итоговому результату"/>
+                        </VBox>
+                    </ScrollPane>
+                </content>
+            </Tab>
+        </TabPane>
+    </VBox>
+
+</GridPane>

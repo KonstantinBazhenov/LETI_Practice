@@ -1,11 +1,23 @@
 package me.kb.ga.sudoku;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
+import me.kb.ga.data.SudokuCell;
 import me.kb.ga.sudoku.matrix.SudokuArrayMatrix;
 import me.kb.ga.sudoku.matrix.SudokuMatrix;
 import me.kb.ga.sudoku.matrix.SudokuMatrixView;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.BiConsumer;
+
 public class SudokuBoard implements SudokuMatrixView {
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private final SudokuMatrix matrix;
     @Getter
@@ -73,19 +85,26 @@ public class SudokuBoard implements SudokuMatrixView {
         return isValid(this);
     }
 
-    public int countErrors() {
-        return countErrors(this, false);
+    public int countUniqueErrors() {
+        return getErrorCells(this).size();
+    }
+
+    public Set<SudokuCell> getErrorCells(SudokuMatrixView view) {
+        Set<SudokuCell> errorPositions = new HashSet<>();
+        countErrors(view, false, (x, y) -> errorPositions.add(new SudokuCell(x, y)));
+
+        return errorPositions;
     }
 
     private boolean isValid(SudokuMatrixView view) {
-        return countErrors(view, true) == 0;
+        return countErrors(view, true, null) == 0;
     }
 
-    private int countErrors(SudokuMatrixView view, boolean stopAfterFirst) {
+    private int countErrors(SudokuMatrixView view, boolean stopAfterFirst, BiConsumer<Integer, Integer> errorPosConsumer) {
         int errors = 0;
         for (int i = 0; i < type.getBlockXCount(); i++) {
             for (int j = 0; j < type.getBlockYCount(); j++) {
-                int subBlockErrors = countSubBlockErrors(view, i, j, stopAfterFirst);
+                int subBlockErrors = countSubBlockErrors(view, i, j, stopAfterFirst, errorPosConsumer);
                 errors += subBlockErrors;
                 if (errors != 0 && stopAfterFirst) {
                     return errors;
@@ -98,6 +117,7 @@ public class SudokuBoard implements SudokuMatrixView {
 
             for (int y = 0; y < view.getHeight(); y++) {
                 if (!validateNumber(view, numbersPresent, x, y)) {
+                    if (errorPosConsumer != null) errorPosConsumer.accept(x, y);
                     errors++;
                     if (stopAfterFirst)
                         return errors;
@@ -110,6 +130,7 @@ public class SudokuBoard implements SudokuMatrixView {
 
             for (int x = 0; x < view.getWidth(); x++) {
                 if (!validateNumber(view, numbersPresent, x, y)) {
+                    if (errorPosConsumer != null) errorPosConsumer.accept(x, y);
                     errors++;
                     if (stopAfterFirst)
                         return errors;
@@ -126,14 +147,14 @@ public class SudokuBoard implements SudokuMatrixView {
     }
 
     public int countSubBlockErrors(int x, int y) {
-        return countSubBlockErrors(matrix, x, y, false);
+        return countSubBlockErrors(matrix, x, y, false, null);
     }
 
     private boolean isSubBlockValid(SudokuMatrixView view, int x, int y) {
-        return countSubBlockErrors(view, x, y, true) == 0;
+        return countSubBlockErrors(view, x, y, true, null) == 0;
     }
 
-    private int countSubBlockErrors(SudokuMatrixView view, int x, int y, boolean stopAfterFirst) {
+    private int countSubBlockErrors(SudokuMatrixView view, int x, int y, boolean stopAfterFirst, BiConsumer<Integer, Integer> errorPosConsumer) {
 
         int errors = 0;
         SudokuMatrixView blockView = getBlockView(view, x, y);
@@ -143,6 +164,8 @@ public class SudokuBoard implements SudokuMatrixView {
         for (int dx = 0; dx < blockView.getWidth(); dx++) {
             for (int dy = 0; dy < blockView.getHeight(); dy++) {
                 if (!validateNumber(blockView, numbersPresent, dx, dy)) {
+                    if (errorPosConsumer != null)
+                        errorPosConsumer.accept(x * type.getBlockWidth() + dx, y * type.getBlockHeight() + dy);
                     errors++;
                     if (stopAfterFirst) {
                         return errors;
@@ -233,5 +256,44 @@ public class SudokuBoard implements SudokuMatrixView {
 
     public SudokuBoard copy() {
         return new SudokuBoard(matrix);
+    }
+
+    public JsonNode toJson() {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", type.name());
+
+        ArrayNode cells = node.putArray("cells");
+
+        for (int x = 0; x < getWidth(); x++) {
+            for (int y = 0; y < getHeight(); y++) {
+                cells.add(getNumber(x, y));
+            }
+        }
+
+        return node;
+    }
+
+    public static SudokuBoard fromJson(JsonNode node) {
+        if (!node.isObject() || !node.has("type") || !node.has("cells")) {
+            throw new IllegalArgumentException("Invalid SudokuBoard json: " + node);
+        }
+
+        try {
+            SudokuType type = SudokuType.valueOf(node.get("type").asText());
+            JsonNode cellsNode = node.get("cells");
+            int[][] cells = new int[type.getSize()][type.getSize()];
+            int idx = 0;
+            for (int x = 0; x < type.getSize(); x++) {
+                for (int y = 0; y < type.getSize(); y++) {
+                    cells[x][y] = cellsNode.get(idx).asInt();
+                    idx++;
+                }
+            }
+
+            return new SudokuBoard(new SudokuArrayMatrix(cells));
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid SudokuBoard json: " + node);
+        }
     }
 }

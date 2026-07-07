@@ -37,4 +37,16 @@ public class SudokuUtils {
 
         return 1 - (double) diff / (maxDiff);
     }
+
+    public int getNumberFromList(List<Integer> board, int x, int y) {
+        int size = (int) Math.sqrt(board.size());
+        int width = size;
+        int height = size;
+
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            throw new IndexOutOfBoundsException("Invalid coordinates: x=" + x + ", y=" + y);
+        }
+
+        return board.get(x * height + y);
+    }
 }

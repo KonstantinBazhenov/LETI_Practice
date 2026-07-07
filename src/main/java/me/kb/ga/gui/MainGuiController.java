@@ -12,8 +12,6 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.chart.XYChart.Data;
 import javafx.scene.control.*;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -29,7 +27,6 @@ import me.kb.ga.data.RunResult;
 import me.kb.ga.data.SudokuCell;
 import me.kb.ga.main.GASudokuSession;
 import me.kb.ga.sudoku.SudokuBoard;
-import me.kb.ga.sudoku.SudokuGenerator;
 import me.kb.ga.sudoku.SudokuType;
 import me.kb.ga.sudoku.SudokuUtils;
 import me.kb.ga.sudoku.matrix.SudokuMatrixView;
@@ -55,29 +52,20 @@ public class MainGuiController {
     private static final double MIN_SCENE_WIDTH = MIN_LEFT_WIDTH + MIN_RIGHT_WIDTH + GAP + PADDING * 2;
 
     private static final double MIN_SCENE_HEIGHT = MIN_GRAPH_SIZE + MIN_BOTTOM_HEIGHT + GAP + PADDING * 2;
-
+    private final XYChart.Series<Number, Number> graphSeries = new XYChart.Series<>();
     private GASudokuSession session;
-
     @FXML
     private GridPane root;
-
     @FXML
     private VBox leftColumn;
-
     @FXML
     private VBox rightColumn;
-
     @FXML
     private StackPane graphContainer;
-
     @FXML
     private LineChart<Number, Number> graph;
-
     @FXML
     private NumberAxis graphXAxis;
-
-    private final XYChart.Series<Number, Number> graphSeries = new XYChart.Series<>();
-
     @FXML
     private TextArea text;
 
@@ -150,14 +138,14 @@ public class MainGuiController {
         sudokuTypeComboBox.setValue(session.getBoard().getType());
 
         sudokuTypeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-           if (newVal != null) {
-               int maxCells = newVal.getSize() * newVal.getSize();
+            if (newVal != null) {
+                int maxCells = newVal.getSize() * newVal.getSize();
 
-               int clamped =  Math.clamp(sudokuFilledCellsSpinner.getValue(), 0, maxCells);
-               sudokuFilledCellsSpinner.setValueFactory(
-                       new SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxCells, clamped)
-               );
-           }
+                int clamped = Math.clamp(sudokuFilledCellsSpinner.getValue(), 0, maxCells);
+                sudokuFilledCellsSpinner.setValueFactory(
+                        new SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxCells, clamped)
+                );
+            }
         });
         sudokuTypeComboBox.setConverter(new StringConverter<>() {
             @Override
@@ -177,10 +165,8 @@ public class MainGuiController {
         });
 
 
-
-
         sudokuFilledCellsSpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, boardSize * boardSize, Math.clamp(30, 0, boardSize * boardSize))
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, boardSize * boardSize, Math.clamp(45, 0, boardSize * boardSize))
         );
         sudokuFilledCellsSpinner.setEditable(true);
 
@@ -196,7 +182,6 @@ public class MainGuiController {
 
         sudokuLoadButton.setOnAction(event -> loadSudoku());
         sudokuSaveButton.setOnAction(event -> saveSudoku());
-
 
 
         gaRunButton.setOnAction(event -> {
@@ -225,12 +210,12 @@ public class MainGuiController {
         });
 
         visualizationSkipToResultButton.setOnAction(event -> {
-           visualizationCurrentDnaSpinner.getValueFactory().setValue(1);
+            visualizationCurrentDnaSpinner.getValueFactory().setValue(1);
 
-           int lastGeneration = session.getLastResult() == null
-                   ? session.getGeneticAlgorithm().getConfig().getIterationsPerRun()
-                   : session.getLastResult().getGenerations().size();
-           visualizationCurrentGenerationSpinner.getValueFactory().setValue(lastGeneration);
+            int lastGeneration = session.getLastResult() == null
+                    ? session.getGeneticAlgorithm().getConfig().getIterationsPerRun()
+                    : session.getLastResult().getGenerations().size();
+            visualizationCurrentGenerationSpinner.getValueFactory().setValue(lastGeneration);
         });
     }
 
@@ -326,8 +311,6 @@ public class MainGuiController {
         if (session == null) return;
 
 
-
-
         SudokuBoard board = session.getBoard();
 
         double cellWidth = w / board.getWidth();
@@ -372,16 +355,17 @@ public class MainGuiController {
 
         for (int i = 0; i < board.getWidth(); i++) {
             for (int j = 0; j < board.getHeight(); j++) {
+                if (errorCells.contains(new SudokuCell(i, j))) {
+                    gc.setFill(Color.RED);
+                    gc.fillRect(i * cellWidth, j * cellWidth, cellWidth, cellHeight);
+                }
+
                 int number = board.getNumber(i, j);
                 if (number == 0) {
                     if (viewingDNA == null) {
                         continue;
                     }
 
-                    if (errorCells.contains(new SudokuCell(i, j))) {
-                        gc.setFill(Color.RED);
-                        gc.fillRect(i * cellWidth, j * cellWidth, cellWidth, cellHeight);
-                    }
 
                     number = SudokuUtils.getNumberFromList(viewingDNA.getDna(), i, j);
 
@@ -390,7 +374,6 @@ public class MainGuiController {
                 } else {
                     gc.setFill(Color.rgb(50, 50, 50));
                 }
-
 
 
                 gc.fillText(String.valueOf(number), (i + (number > 9 ? 0.1 : 0.4)) * cellWidth, (j + (0.8)) * cellHeight);

@@ -28,11 +28,11 @@ public class GASudokuSession {
     private RunResult<List<Integer>> lastResult;
     @Getter
     private boolean lastResultOutdated;
-    private SudokuTask task;
+    private final SudokuTask task;
     private CompletableFuture<RunResult<List<Integer>>> runFuture;
 
     public GASudokuSession(GAConfig config, SudokuType type) {
-        regenerateBoard(type, 30);
+        regenerateBoard(type, 45);
 
         task = new SudokuTask(board);
 

@@ -10,11 +10,9 @@ import me.kb.ga.data.RunResult;
 
 import java.security.InvalidParameterException;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @AllArgsConstructor
@@ -61,6 +59,7 @@ public class GeneticAlgorithm<DNA> {
 
             if (currentBest == null || best.getScore() > currentBest.getScore()) {
                 currentBest = best;
+                stagnationCount = 0;
             } else {
                 stagnationCount++;
             }
@@ -114,7 +113,6 @@ public class GeneticAlgorithm<DNA> {
             }
 
 
-
         }
 
 
@@ -155,12 +153,14 @@ public class GeneticAlgorithm<DNA> {
                 }
             }
         }*/
+        int compareLimit = Math.min(config.getSimilarityCompare(), evaluated.size());
 
 
-        if (config.getSimilarityCompare() > 0) {
-            for (int i = config.getSimilaritySkip(); i < population.size(); i ++) {
+        if (compareLimit > 0) {
+
+            for (int i = config.getSimilaritySkip(); i < population.size(); i++) {
                 double similarity = 0;
-                for (int j = 0; j < config.getSimilarityCompare(); j++) {
+                for (int j = 0; j < compareLimit; j++) {
                     if (j == i) continue;
                     similarity = Math.max(similarity, task.getSimilarity(evaluated.get(i).getDna(), evaluated.get(j).getDna()));
                 }

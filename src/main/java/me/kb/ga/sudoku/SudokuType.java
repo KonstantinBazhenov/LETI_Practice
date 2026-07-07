@@ -1,18 +1,17 @@
 package me.kb.ga.sudoku;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 public enum SudokuType {
     SUDOKU_9("9x9", 9, 3, 3),
 
-    SUDOKU_6("6x6",6, 2, 3),
-    SUDOKU_8("8x8",8, 2, 4),
-    SUDOKU_10("10x10",10, 2, 5),
-    SUDOKU_12("12x12",12, 3, 4),
-    SUDOKU_16("16x16",16, 4, 4),
-    SUDOKU_25("25x25",25, 5, 5);
+    SUDOKU_6("6x6", 6, 2, 3),
+    SUDOKU_8("8x8", 8, 2, 4),
+    SUDOKU_10("10x10", 10, 2, 5),
+    SUDOKU_12("12x12", 12, 3, 4),
+    SUDOKU_16("16x16", 16, 4, 4),
+    SUDOKU_25("25x25", 25, 5, 5);
 
     private final int size;
     private final int blockHeight;
@@ -30,15 +29,6 @@ public enum SudokuType {
         }
     }
 
-    public int getBlockXCount() {
-        return size / blockWidth;
-    }
-
-    public int getBlockYCount() {
-        return size / blockHeight;
-    }
-
-
     public static SudokuType getByBoardSize(int size) {
         for (SudokuType type : SudokuType.values()) {
             if (type.size == size) {
@@ -46,5 +36,13 @@ public enum SudokuType {
             }
         }
         return null;
+    }
+
+    public int getBlockXCount() {
+        return size / blockWidth;
+    }
+
+    public int getBlockYCount() {
+        return size / blockHeight;
     }
 }

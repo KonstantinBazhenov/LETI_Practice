@@ -4,7 +4,6 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import me.kb.ga.data.GAConfig;
 import me.kb.ga.main.GASudokuSession;
@@ -14,6 +13,10 @@ import java.io.IOException;
 import java.net.URL;
 
 public class GuiApplication extends Application {
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -47,9 +50,5 @@ public class GuiApplication extends Application {
         stage.setTitle("Sudoku Genetic Algorithm");
         stage.setScene(scene);
         stage.show();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }

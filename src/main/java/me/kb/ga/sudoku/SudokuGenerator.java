@@ -12,6 +12,8 @@ import java.util.Random;
 public class SudokuGenerator {
 
     public SudokuArrayMatrix generate(Random random, SudokuType type, int keepNumbers) {
+        keepNumbers = Math.clamp(keepNumbers, 0, type.getSize() * type.getSize());
+
         int size = type.getSize();
         int[][] board = new int[size][size];
 

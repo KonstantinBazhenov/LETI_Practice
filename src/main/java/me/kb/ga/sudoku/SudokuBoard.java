@@ -10,9 +10,7 @@ import me.kb.ga.sudoku.matrix.SudokuArrayMatrix;
 import me.kb.ga.sudoku.matrix.SudokuMatrix;
 import me.kb.ga.sudoku.matrix.SudokuMatrixView;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -42,11 +40,47 @@ public class SudokuBoard implements SudokuMatrixView {
         this.matrix = board.copy();
     }
 
+    private static boolean isComplete(SudokuMatrixView view) {
+        for (int i = 0; i < view.getWidth(); i++) {
+            for (int j = 0; j < view.getHeight(); j++) {
+                if (view.getNumber(i, j) == 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static SudokuBoard fromJson(JsonNode node) {
+        if (!node.isObject() || !node.has("type") || !node.has("cells")) {
+            throw new IllegalArgumentException("Invalid SudokuBoard json: " + node);
+        }
+
+        try {
+            SudokuType type = SudokuType.valueOf(node.get("type").asText());
+            JsonNode cellsNode = node.get("cells");
+            int[][] cells = new int[type.getSize()][type.getSize()];
+            int idx = 0;
+            for (int x = 0; x < type.getSize(); x++) {
+                for (int y = 0; y < type.getSize(); y++) {
+                    cells[x][y] = cellsNode.get(idx).asInt();
+                    idx++;
+                }
+            }
+
+            return new SudokuBoard(new SudokuArrayMatrix(cells));
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid SudokuBoard json: " + node);
+        }
+    }
+
     // allowReplace - разрешает замену уже установленных чисел; замена на 0 разрешена всегда
     // force - ставит число даже если доска станет неверной
     public boolean setNumber(int x, int y, int number, boolean allowReplace, boolean force) {
         if (number > type.getSize() || number < 0) throw new IllegalArgumentException("Invalid number");
-        if (x < 0 || x >= type.getSize() || y < 0 || y >= type.getSize()) throw new IllegalArgumentException("Invalid position");
+        if (x < 0 || x >= type.getSize() || y < 0 || y >= type.getSize())
+            throw new IllegalArgumentException("Invalid position");
         if (!force && !canSetNumber(x, y, number, allowReplace)) {
             return false;
         }
@@ -59,7 +93,8 @@ public class SudokuBoard implements SudokuMatrixView {
     // allowReplace - разрешает замену уже установленных чисел; замена на 0 разрешена всегда
     public boolean canSetNumber(int x, int y, int number, boolean allowReplace) {
         if (number > type.getSize() || number < 0) throw new IllegalArgumentException("Invalid number");
-        if (x < 0 || x >= type.getSize() || y < 0 || y >= type.getSize()) throw new IllegalArgumentException("Invalid position");
+        if (x < 0 || x >= type.getSize() || y < 0 || y >= type.getSize())
+            throw new IllegalArgumentException("Invalid position");
 
         if (!allowReplace && number != 0 && getNumber(x, y) != 0) return false;
 
@@ -212,17 +247,6 @@ public class SudokuBoard implements SudokuMatrixView {
         };
     }
 
-    private static boolean isComplete(SudokuMatrixView view) {
-        for (int i = 0; i < view.getWidth(); i++) {
-            for (int j = 0; j < view.getHeight(); j++) {
-                if (view.getNumber(i, j) == 0) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     private boolean validateBoard(SudokuMatrixView board, SudokuType type) {
         if (board.getHeight() != type.getSize() || board.getWidth() != type.getSize()) return false;
 
@@ -271,29 +295,5 @@ public class SudokuBoard implements SudokuMatrixView {
         }
 
         return node;
-    }
-
-    public static SudokuBoard fromJson(JsonNode node) {
-        if (!node.isObject() || !node.has("type") || !node.has("cells")) {
-            throw new IllegalArgumentException("Invalid SudokuBoard json: " + node);
-        }
-
-        try {
-            SudokuType type = SudokuType.valueOf(node.get("type").asText());
-            JsonNode cellsNode = node.get("cells");
-            int[][] cells = new int[type.getSize()][type.getSize()];
-            int idx = 0;
-            for (int x = 0; x < type.getSize(); x++) {
-                for (int y = 0; y < type.getSize(); y++) {
-                    cells[x][y] = cellsNode.get(idx).asInt();
-                    idx++;
-                }
-            }
-
-            return new SudokuBoard(new SudokuArrayMatrix(cells));
-
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid SudokuBoard json: " + node);
-        }
     }
 }

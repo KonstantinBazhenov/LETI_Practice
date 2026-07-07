@@ -16,8 +16,8 @@
     </padding>
 
     <columnConstraints>
-        <ColumnConstraints percentWidth="70.0"/>
-        <ColumnConstraints percentWidth="30.0"/>
+        <ColumnConstraints percentWidth="60.0"/>
+        <ColumnConstraints percentWidth="40.0"/>
     </columnConstraints>
 
     <rowConstraints>

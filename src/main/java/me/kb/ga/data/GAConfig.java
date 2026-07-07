@@ -33,6 +33,9 @@ public class GAConfig {
     @Builder.Default
     private double similarityThreshold = 0.85;
 
+    public static GAConfig fromJson(JsonNode json) {
+        return mapper.convertValue(json, GAConfig.class);
+    }
 
     public int getCopyBest() {
         return (int) (copyBestRate * populationSize);
@@ -52,18 +55,13 @@ public class GAConfig {
                 mutationRate >= 0 && mutationRate <= 1 &&
                 crossoverRate >= 0 && crossoverRate <= 1 &&
                 stagnationGenerations >= 0 &&
-                stagnationKeepRate >= 0 &&  stagnationKeepRate <= 1 &&
+                stagnationKeepRate >= 0 && stagnationKeepRate <= 1 &&
                 similarityThreshold >= 0 && similarityThreshold <= 1 &&
                 similarityPunishment >= 0 &&
                 similarityCompare >= 0;
     }
 
-
     public JsonNode toJson() {
         return mapper.valueToTree(this);
-    }
-
-    public static GAConfig fromJson(JsonNode json) {
-        return mapper.convertValue(json, GAConfig.class);
     }
 }

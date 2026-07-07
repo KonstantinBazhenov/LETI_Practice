@@ -8,9 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SudokuTask implements GATask<List<Integer>> {
     private final Map<List<Integer>, Double> evalCache = new ConcurrentHashMap<>();
-
-    private SudokuType type;
     private final Map<Integer, Integer> fixed;
+    private SudokuType type;
 
     public SudokuTask(SudokuBoard sudokuBoard) {
         this.type = sudokuBoard.getType();
@@ -62,7 +61,7 @@ public class SudokuTask implements GATask<List<Integer>> {
             if (number < 0 || number > type.getSize()) {
                 return false;
             }
-            if (fixed.getOrDefault(i, number)  != number) {
+            if (fixed.getOrDefault(i, number) != number) {
                 return false;
             }
         }

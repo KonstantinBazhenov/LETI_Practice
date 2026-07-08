@@ -60,6 +60,7 @@
                             <Label text="Количество заполненных клеток"/>
                             <Spinner fx:id="sudokuFilledCellsSpinner"/>
                             <Button fx:id="sudokuGenerateButton" text="Сгенерировать"/>
+                            <Button fx:id="sudokuCreateButton" text="Создать"/>
                             <Button fx:id="sudokuLoadButton" text="Загрузить из файла"/>
                             <Button fx:id="sudokuSaveButton" text="Сохранить в файл"/>
                         </VBox>

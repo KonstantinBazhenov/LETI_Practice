@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<GridPane xmlns:fx="http://javafx.com/fxml/1" fx:id="root" prefWidth="900.0" prefHeight="600.0" minWidth="800.0"
+          minHeight="600.0" hgap="10.0" xmlns="http://javafx.com/javafx/26"
+          fx:controller="me.kb.ga.gui.CreateSudokuGuiController"
+          style="-fx-background-color: #CFCFCF;">
+
+    <padding>
+        <Insets top="10.0" right="10.0" bottom="10.0" left="10.0"/>
+    </padding>
+
+    <rowConstraints>
+        <RowConstraints percentHeight="80.0"/>
+        <RowConstraints percentHeight="20.0"/>
+    </rowConstraints>
+
+    <VBox fx:id="top" spacing="10.0" minWidth="200.0" minHeight="300.0" maxWidth="Infinity" maxHeight="Infinity"
+          GridPane.columnIndex="0" GridPane.rowIndex="0">
+    <GridPane fx:id="sudokuBoard" minWidth="300.0" minHeight="300.0" maxWidth="Infinity" maxHeight="Infinity">
+
+    </GridPane>
+    </VBox>
+
+    <VBox fx:id="bottom" spacing="10.0" minWidth="50.0" minHeight="50.0" maxWidth="Infinity" maxHeight="Infinity"
+          GridPane.columnIndex="0" GridPane.rowIndex="1">
+
+        <Button fx:id="doneButton" text="Готово"/>
+        <Button fx:id="cancelButton" text="Отмена"/>
+    </VBox>
+
+</GridPane>

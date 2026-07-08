@@ -5,6 +5,9 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.chart.LineChart;
@@ -19,6 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +36,8 @@ import me.kb.ga.sudoku.SudokuUtils;
 import me.kb.ga.sudoku.matrix.SudokuMatrixView;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 import java.util.Set;
 
@@ -87,6 +93,9 @@ public class MainGuiController {
 
     @FXML
     private Button sudokuGenerateButton;
+
+    @FXML
+    private Button sudokuCreateButton;
 
     @FXML
     private Button sudokuSaveButton;
@@ -195,6 +204,14 @@ public class MainGuiController {
             renderSudoku();
         });
 
+        sudokuCreateButton.setOnAction(event -> {
+            try {
+                openSudokuCreateWindow();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
         sudokuLoadButton.setOnAction(event -> loadSudoku());
         sudokuSaveButton.setOnAction(event -> saveSudoku());
 
@@ -268,6 +285,34 @@ public class MainGuiController {
         });
     }
 
+    private void openSudokuCreateWindow() throws IOException {
+        URL fxmlUrl = getClass().getResource("/create-sudoku-view.fxml");
+
+        if (fxmlUrl == null) {
+            throw new IllegalStateException("Cannot find create-sudoku-view.fxml in resources");
+        }
+
+        FXMLLoader loader = new FXMLLoader(fxmlUrl);
+
+        Parent root = loader.load();
+        CreateSudokuGuiController controller = loader.getController();
+
+        Stage dialogStage = new Stage();
+        dialogStage.setTitle("Create Sudoku");
+        dialogStage.setScene(new Scene(root));
+
+        Stage mainStage = (Stage) (sudokuCreateButton).getScene().getWindow();
+        dialogStage.initOwner(mainStage);
+        dialogStage.initModality(Modality.WINDOW_MODAL);
+
+        controller.setup(sudokuTypeComboBox.getValue() == null ? session.getBoard().getType() : sudokuTypeComboBox.getValue(), sudokuMatrix -> {
+            session.setBoard(sudokuMatrix);
+            renderAll();
+        });
+
+        dialogStage.showAndWait();
+    }
+
 
     private void saveSudoku() {
         FileChooser chooser = new FileChooser();
@@ -316,6 +361,27 @@ public class MainGuiController {
     private void renderAll() {
         renderGraph();
         renderSudoku();
+        RunResult<List<Integer>> run = session.getLastResult();
+
+        if (run == null) return;
+
+        String text = """
+                Поколение: %d
+                Лучший результат: %f
+                Средний результат: %f
+                Медианный результат: %f
+                """;
+
+        int generation = Math.min(visualizationCurrentGenerationSpinner.getValue(), run.getBestPerGeneration().size());
+        double score = run.getBestPerGeneration().get(generation - 1).getScore();
+
+        List<DNAScore<List<Integer>>> generationDna = run.getGenerations().get(generation - 1);
+
+        double average = generationDna.stream().mapToDouble(DNAScore::getScore).average().orElseThrow();
+        double median = generationDna.stream().mapToDouble(DNAScore::getScore).skip(generationDna.size() / 2).findFirst().orElseThrow();
+
+
+        this.text.setText(String.format(text, generation, score, average, median));
     }
 
     private void renderGraph() {

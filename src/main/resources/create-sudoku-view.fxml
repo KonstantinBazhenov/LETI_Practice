@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 
 <GridPane xmlns:fx="http://javafx.com/fxml/1" fx:id="root" prefWidth="900.0" prefHeight="600.0" minWidth="800.0"
-          minHeight="600.0" hgap="10.0" xmlns="http://javafx.com/javafx/26"
+          minHeight="600.0" hgap="10.0" xmlns="http://javafx.com/javafx/22"
           fx:controller="me.kb.ga.gui.CreateSudokuGuiController"
           style="-fx-background-color: #CFCFCF;">
 

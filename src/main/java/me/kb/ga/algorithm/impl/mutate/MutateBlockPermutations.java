@@ -12,20 +12,21 @@ import java.util.Random;
 @AllArgsConstructor
 @Getter
 @Setter
-public class MutateBlockPermutations implements GAMutate<List<Integer>> {
+public class MutateBlockPermutations implements GAMutate<byte[]> {
     int blockSize;
 
     @Override
-    public List<Integer> mutate(Random random, List<Integer> DNA, double rate) {
-        List<Integer> newDNA = new ArrayList<>(DNA);
+    public byte[] mutate(Random random,byte[] DNA, double rate) {
+        byte[] newDNA = new byte[DNA.length];
+        System.arraycopy(DNA, 0, newDNA, 0, DNA.length);
 
-        if (DNA.size() % blockSize != 0) {
+        if (DNA.length % blockSize != 0) {
             throw new IllegalArgumentException("DNA size must be divisible by block size");
         }
 
-        int blockCount = DNA.size() / blockSize;
+        int blockCount = DNA.length / blockSize;
 
-        int bound = (int) (DNA.size() * rate);
+        int bound = (int) (DNA.length * rate);
         if (bound <= 0) return newDNA;
 
         int permutations = random.nextInt(bound);
@@ -35,9 +36,9 @@ public class MutateBlockPermutations implements GAMutate<List<Integer>> {
             int pos1 = random.nextInt(blockSize) + blockIndex * blockSize;
             int pos2 = random.nextInt(blockSize) + blockIndex * blockSize;
             if (pos1 != pos2) {
-                int tmp = newDNA.get(pos1);
-                newDNA.set(pos1, newDNA.get(pos2));
-                newDNA.set(pos2, tmp);
+                byte tmp = newDNA[pos1];
+                newDNA[pos1] = newDNA[pos2];
+                newDNA[pos2] = tmp;
             }
         }
 

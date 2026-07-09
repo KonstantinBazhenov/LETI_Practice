@@ -13,18 +13,18 @@ import java.util.Random;
 @AllArgsConstructor
 @Getter
 @Setter
-public class InitializerBlockPermutations implements GAInitializer<List<Integer>> {
+public class InitializerBlockPermutations implements GAInitializer<byte[]> {
     private int blockCount;
     private int blockSize;
 
     @Override
-    public List<List<Integer>> init(Random random, int size) {
+    public List<byte[]> init(Random random, int size) {
 
-        List<List<Integer>> generation = new ArrayList<>();
+        List<byte[]> generation = new ArrayList<>();
 
 
         for (int i = 0; i < size; i++) {
-            List<Integer> dna = new ArrayList<>();
+            byte[] dna = new byte[blockSize * blockCount];
 
             for (int j = 0; j < blockCount; j++) {
                 List<Integer> block = new ArrayList<>();
@@ -32,7 +32,10 @@ public class InitializerBlockPermutations implements GAInitializer<List<Integer>
                     block.add(s);
                 }
                 Collections.shuffle(block, random);
-                dna.addAll(block);
+
+                for (int s = 0; s < blockSize; s++) {
+                    dna[j * blockSize + s] = block.get(s).byteValue();
+                }
             }
             generation.add(dna);
         }

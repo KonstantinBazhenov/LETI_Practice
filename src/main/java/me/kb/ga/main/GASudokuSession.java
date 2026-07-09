@@ -23,13 +23,13 @@ public class GASudokuSession {
     @Getter
     private SudokuBoard board;
     @Getter
-    private GeneticAlgorithm<List<Integer>> geneticAlgorithm;
+    private GeneticAlgorithm<byte[]> geneticAlgorithm;
     @Getter
-    private RunResult<List<Integer>> lastResult;
+    private RunResult<byte[]> lastResult;
     @Getter
     private boolean lastResultOutdated;
     private final SudokuTask task;
-    private CompletableFuture<RunResult<List<Integer>>> runFuture;
+    private CompletableFuture<RunResult<byte[]>> runFuture;
     private Thread runThread;
 
     public GASudokuSession(GAConfig config, SudokuType type) {
@@ -50,18 +50,18 @@ public class GASudokuSession {
     }
 
 
-    public synchronized CompletableFuture<RunResult<List<Integer>>> runGA() {
+    public synchronized CompletableFuture<RunResult<byte[]>> runGA() {
         return runGA(null);
     }
 
-    public synchronized CompletableFuture<RunResult<List<Integer>>> runGA(Consumer<RunResult<List<Integer>>> iterationConsumer) {
+    public synchronized CompletableFuture<RunResult<byte[]>> runGA(Consumer<RunResult<byte[]>> iterationConsumer) {
         if (runFuture != null) {
             return runFuture;
         }
         runFuture = new CompletableFuture<>();
         runThread = new Thread(() -> {
             try {
-                RunResult<List<Integer>> result = geneticAlgorithm.run(listRunResult -> {
+                RunResult<byte[]> result = geneticAlgorithm.run(listRunResult -> {
                     lastResult = listRunResult;
                     this.lastResultOutdated = false;
                     if (iterationConsumer != null)

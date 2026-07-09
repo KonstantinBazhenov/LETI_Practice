@@ -262,7 +262,12 @@ public class MainGuiController {
             }).whenComplete((listRunResult, throwable) -> {
                 onGAEnd();
 
-                if (throwable != null) return;
+                if (throwable != null) {
+                    if (!(throwable instanceof InterruptedException)) {
+                        throwable.printStackTrace();
+                    }
+                    return;
+                }
                 visualizationCurrentGenerationSpinner.getValueFactory().setValue(Math.min(
                         visualizationCurrentGenerationSpinner.getValue(),
                         listRunResult.getGenerations().size()
@@ -465,7 +470,7 @@ public class MainGuiController {
     private void renderAll() {
         renderGraph();
         renderSudoku();
-        RunResult<List<Integer>> run = session.getLastResult();
+        RunResult<byte[]> run = session.getLastResult();
 
         if (run == null) return;
 
@@ -480,7 +485,7 @@ public class MainGuiController {
         int generation = Math.min(visualizationCurrentGenerationSpinner.getValue(), run.getBestPerGeneration().size());
         double score = run.getBestPerGeneration().get(generation - 1).getScore();
 
-        List<DNAScore<List<Integer>>> generationDna = run.getGenerations().get(generation - 1);
+        List<DNAScore<byte[]>> generationDna = run.getGenerations().get(generation - 1);
 
         double average = generationDna.stream().mapToDouble(DNAScore::getScore).average().orElseThrow();
         double median = generationDna.stream().mapToDouble(DNAScore::getScore).skip(generationDna.size() / 2).findFirst().orElseThrow();
@@ -496,7 +501,7 @@ public class MainGuiController {
         graphSeries.getData().clear();
 
 
-        RunResult<List<Integer>> run = session.getLastResult();
+        RunResult<byte[]> run = session.getLastResult();
 
         if (run != null) {
             int generations = Math.min(visualizationCurrentGenerationSpinner.getValue(), run.getBestPerGeneration().size());
@@ -529,7 +534,7 @@ public class MainGuiController {
                     continue;
                 }
 
-                DNAScore<List<Integer>> score = run.getBestPerGeneration().get(i);
+                DNAScore<byte[]> score = run.getBestPerGeneration().get(i);
 
                 double scoreVal = score.getScore();
 
@@ -570,15 +575,15 @@ public class MainGuiController {
         double cellHeight = h / board.getHeight();
 
         gc.setFont(Font.font(cellHeight * 0.6));
-        RunResult<List<Integer>> result = session.getLastResult();
+        RunResult<byte[]> result = session.getLastResult();
 
-        DNAScore<List<Integer>> viewingDNA;
+        DNAScore<byte[]> viewingDNA;
 
         if (result == null || session.isLastResultOutdated()) {
             viewingDNA = null;
         } else {
             int currentGeneration = Math.min(visualizationCurrentGenerationSpinner.getValue() - 1, result.getBestPerGeneration().size() - 1);
-            List<DNAScore<List<Integer>>> dna = result.getGenerations().get(currentGeneration);
+            List<DNAScore<byte[]>> dna = result.getGenerations().get(currentGeneration);
 
             viewingDNA = dna.get(Math.clamp(visualizationCurrentDnaSpinner.getValue() - 1, 0, dna.size() - 1));
         }

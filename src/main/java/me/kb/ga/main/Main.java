@@ -25,7 +25,7 @@ public class Main {
             SudokuTask task = new SudokuTask(board);
 
 
-            GeneticAlgorithm<List<Integer>> geneticAlgorithm = new GeneticAlgorithm<>(
+            GeneticAlgorithm<byte[]> geneticAlgorithm = new GeneticAlgorithm<>(
                     GAConfig.builder()
                             .iterationsPerRun(3000)
                             .populationSize(500)
@@ -45,7 +45,7 @@ public class Main {
                     task
             );
 
-            RunResult<List<Integer>> result = geneticAlgorithm.run();
+            RunResult<byte[]> result = geneticAlgorithm.run();
             System.out.println("Best score: " + result.getBest().getScore() + " Generations: " + result.getGenerations().size());
             SudokuUtils.printBoard(result.getBest().getDna());
         }

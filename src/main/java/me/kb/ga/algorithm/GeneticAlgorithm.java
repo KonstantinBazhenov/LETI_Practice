@@ -54,7 +54,6 @@ public class GeneticAlgorithm<DNA> {
 
             List<DNAScore<DNA>> bestPerGeneration = new ArrayList<>();
             List<List<DNAScore<DNA>>> generations = new ArrayList<>();
-            Map<DNAScore<DNA>, DNAScore<DNA>> uniqueDNA = new HashMap<>();
 
             List<DNA> population = new ArrayList<>(initializer.init(random, config.getPopulationSize()));
             population.replaceAll(dna -> task.tryCorrect(dna));
@@ -66,12 +65,7 @@ public class GeneticAlgorithm<DNA> {
 
                 List<DNAScore<DNA>> evaluated = evalAll(population, executor, config);
 
-                List<DNAScore<DNA>> deduped = evaluated.stream()
-                        .map(score -> uniqueDNA.computeIfAbsent(score, (key) -> score))
-                        .toList();
-
-
-                generations.add(deduped);
+                generations.add(evaluated);
 
                 DNAScore<DNA> best = evaluated.get(0);
 

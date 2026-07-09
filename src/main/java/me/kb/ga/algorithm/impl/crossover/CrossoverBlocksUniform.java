@@ -5,49 +5,50 @@ import lombok.Getter;
 import lombok.Setter;
 import me.kb.ga.algorithm.GACrossover;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
 @AllArgsConstructor
 @Getter
 @Setter
-public class CrossoverBlocksUniform implements GACrossover<List<Integer>> {
+public class CrossoverBlocksUniform implements GACrossover<byte[]> {
     int blockSize;
 
 
     @Override
-    public List<List<Integer>> crossover(Random random, List<Integer> dna1, List<Integer> dna2) {
+    public List<byte[]> crossover(Random random, byte[] dna1, byte[] dna2) {
 
-        if (dna1.size() != dna2.size()) {
+        if (dna1.length != dna2.length) {
             throw new IllegalArgumentException("DNA size mismatch");
         }
 
-        if (dna1.size() % blockSize != 0) {
+        if (dna1.length % blockSize != 0) {
             throw new IllegalArgumentException("DNA size must be divisible by block size");
         }
 
-        int blockCount = dna1.size() / blockSize;
+        int blockCount = dna1.length / blockSize;
 
 
-        List<Integer> newDna1 = new ArrayList<>();
-        List<Integer> newDna2 = new ArrayList<>();
+        byte[] newDna1 = new byte[dna1.length];
+        byte[] newDna2 = new byte[dna1.length];
 
 
-        Iterator<Integer> iter1 = dna1.iterator();
-        Iterator<Integer> iter2 = dna2.iterator();
+
 
         for (int i = 0; i < blockCount; i++) {
             if (random.nextBoolean()) {
                 for (int j = 0; j < blockSize; j++) {
-                    newDna1.add(iter1.next());
-                    newDna2.add(iter2.next());
+                    int idx = i * blockSize + j;
+
+                    newDna1[idx] = dna1[idx];
+                    newDna2[idx] = dna2[idx];
                 }
             } else {
                 for (int j = 0; j < blockSize; j++) {
-                    newDna1.add(iter2.next());
-                    newDna2.add(iter1.next());
+                    int idx = i * blockSize + j;
+
+                    newDna1[idx] = dna2[idx];
+                    newDna2[idx] = dna1[idx];
                 }
             }
         }

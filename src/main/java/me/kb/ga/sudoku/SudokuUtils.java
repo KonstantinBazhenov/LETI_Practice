@@ -1,9 +1,9 @@
 package me.kb.ga.sudoku;
 
 import lombok.experimental.UtilityClass;
+import me.kb.ga.data.SudokuCell;
 
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 @UtilityClass
 public class SudokuUtils {
@@ -28,14 +28,15 @@ public class SudokuUtils {
             throw new IllegalArgumentException("Boards must have same size");
         }
 
-        int diff = 0;
-        for (int i = 0; i < size1; i++) {
-            diff += Math.abs(board1.get(i) - board2.get(i));
+        int same = 0;
+
+        for (int i = 0; i < board1.size(); i++) {
+            if (Objects.equals(board1.get(i), board2.get(i))) {
+                same++;
+            }
         }
 
-        int maxDiff = ((int) Math.sqrt(size1)) * size1;
-
-        return 1 - (double) diff / (maxDiff);
+        return (double) same / board1.size();
     }
 
     public int getNumberFromList(List<Integer> board, int x, int y) {

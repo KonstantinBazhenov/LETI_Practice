@@ -4,7 +4,9 @@ import me.kb.ga.algorithm.GATask;
 import me.kb.ga.data.DNAScore;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class SudokuTask implements GATask<List<Integer>> {
     private final Map<List<Integer>, Double> evalCache = new ConcurrentHashMap<>();
@@ -42,6 +44,12 @@ public class SudokuTask implements GATask<List<Integer>> {
 
     @Override
     public double eval(List<Integer> numbers) {
+        if (evalCache.size() > 1000) {
+            List<List<Integer>> keys = evalCache.keySet().stream().limit(100).toList();
+            keys.forEach(evalCache.keySet()::remove);
+
+            evalCache.remove(keys);
+        }
         return evalCache.computeIfAbsent(numbers, integers -> {
             SudokuBoard board = new SudokuBoard(type);
             setBoard(board, numbers);

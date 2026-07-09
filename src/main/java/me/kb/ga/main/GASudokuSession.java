@@ -30,6 +30,7 @@ public class GASudokuSession {
     private boolean lastResultOutdated;
     private final SudokuTask task;
     private CompletableFuture<RunResult<List<Integer>>> runFuture;
+    private Thread runThread;
 
     public GASudokuSession(GAConfig config, SudokuType type) {
         regenerateBoard(type, 45);
@@ -37,7 +38,6 @@ public class GASudokuSession {
         task = new SudokuTask(board);
 
         geneticAlgorithm = new GeneticAlgorithm<>(
-                new Random(),
                 config,
                 new InitializerBlockPermutations(type.getSize(), type.getSize()),
                 new CrossoverBlocksUniform(type.getSize()),
@@ -59,7 +59,7 @@ public class GASudokuSession {
             return runFuture;
         }
         runFuture = new CompletableFuture<>();
-        new Thread(() -> {
+        runThread = new Thread(() -> {
             try {
                 RunResult<List<Integer>> result = geneticAlgorithm.run(listRunResult -> {
                     lastResult = listRunResult;
@@ -74,9 +74,19 @@ public class GASudokuSession {
                 runFuture.completeExceptionally(t);
             }
             runFuture = null;
-        }, "GA Executor").start();
+        }, "GA Executor");
+
+        runThread.setDaemon(true);
+        runThread.start();
 
         return runFuture;
+    }
+
+    public synchronized void interruptRun() {
+        if (runThread != null) {
+            runThread.interrupt();
+            runThread = null;
+        }
     }
 
     public void regenerateBoard(int keepNumbers) {
@@ -108,7 +118,6 @@ public class GASudokuSession {
 
         if (geneticAlgorithm != null) {
             geneticAlgorithm = new GeneticAlgorithm<>(
-                    new Random(),
                     geneticAlgorithm.getConfig(),
                     new InitializerBlockPermutations(type.getSize(), type.getSize()),
                     new CrossoverBlocksUniform(type.getSize()),

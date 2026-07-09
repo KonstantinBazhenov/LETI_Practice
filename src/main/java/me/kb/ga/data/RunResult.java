@@ -10,6 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 @ToString
 public class RunResult<DNA> {
+    int seed;
     DNAScore<DNA> best;
     List<DNAScore<DNA>> bestPerGeneration;
     List<List<DNAScore<DNA>>> generations;

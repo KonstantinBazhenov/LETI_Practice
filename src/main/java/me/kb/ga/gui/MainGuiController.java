@@ -27,6 +27,7 @@ import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import lombok.RequiredArgsConstructor;
 import me.kb.ga.data.DNAScore;
+import me.kb.ga.data.GAConfig;
 import me.kb.ga.data.RunResult;
 import me.kb.ga.data.SudokuCell;
 import me.kb.ga.main.GASudokuSession;
@@ -40,24 +41,13 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @RequiredArgsConstructor
 public class MainGuiController {
     private static final JsonMapper jsonMapper = new JsonMapper();
-    private static final double MIN_LEFT_WIDTH = 300.0;
-    private static final double MIN_RIGHT_WIDTH = 220.0;
-
-    private static final double MIN_BOTTOM_HEIGHT = 100.0;
-
-    private static final double MIN_GRAPH_SIZE = 100.0;
-    private static final double MIN_SUDOKU_SIZE = 100.0;
 
     private static final double GAP = 10.0;
-    private static final double PADDING = 10.0;
-
-    private static final double MIN_SCENE_WIDTH = MIN_LEFT_WIDTH + MIN_RIGHT_WIDTH + GAP + PADDING * 2;
-
-    private static final double MIN_SCENE_HEIGHT = MIN_GRAPH_SIZE + MIN_BOTTOM_HEIGHT + GAP + PADDING * 2;
     private final XYChart.Series<Number, Number> graphSeries = new XYChart.Series<>();
     private GASudokuSession session;
     @FXML
@@ -107,6 +97,9 @@ public class MainGuiController {
     private Button gaRunButton;
 
     @FXML
+    private Button gaStopButton;
+
+    @FXML
     private Spinner<Integer> gaMaxGenerations;
 
     @FXML
@@ -122,6 +115,15 @@ public class MainGuiController {
     private Spinner<Double> gaCrossoverRate;
 
     @FXML
+    private Spinner<Integer> gaGenerationsDelay;
+
+    @FXML
+    private Spinner<Integer> gaRandomSeed;
+
+    @FXML
+    private Button gaResetConfig;
+
+    @FXML
     private Spinner<Integer> visualizationCurrentGenerationSpinner;
 
     @FXML
@@ -130,18 +132,53 @@ public class MainGuiController {
     @FXML
     private Button visualizationSkipToResultButton;
 
+    private final AtomicBoolean renderQueued = new AtomicBoolean(false);
+
 
     @FXML
     private void initialize() {
-        installStageMinSize();
-
-        bindCanvasSquareToColumn(sudoku, sudokuContainer, rightColumn, MIN_SUDOKU_SIZE);
+        bindCanvasSquareToColumn(sudoku, sudokuContainer, leftColumn);
 
         sudoku.widthProperty().addListener((obs, oldVal, newVal) -> renderSudoku());
         sudoku.heightProperty().addListener((obs, oldVal, newVal) -> renderSudoku());
 
         graph.getData().add(graphSeries);
 
+
+        root.sceneProperty().addListener((sceneObs, oldScene, newScene) -> {
+            if (newScene == null) {
+                return;
+            }
+
+            Runnable updateFont = () -> {
+                double scale = Math.min(newScene.getWidth() / 1920, newScene.getHeight() / 1080);
+
+                double fontSize = Math.clamp(scale * 30, 6, 60);
+
+                root.setStyle("-fx-font-size: " + fontSize + "px;");
+            };
+
+            newScene.widthProperty().addListener((obs, oldVal, newVal) -> updateFont.run());
+            newScene.heightProperty().addListener((obs, oldVal, newVal) -> updateFont.run());
+
+            Platform.runLater(updateFont);
+        });
+
+        gaStopButton.setDisable(true);
+
+        leftColumn.setMinWidth(0);
+        rightColumn.setMinWidth(0);
+        graphContainer.setMinWidth(0);
+        sudokuContainer.setMinWidth(0);
+        graph.setMinWidth(0);
+        config.setMinWidth(0);
+        text.setMinWidth(0);
+
+        leftColumn.setMinHeight(0);
+        rightColumn.setMinHeight(0);
+        graph.setMinHeight(0);
+        config.setMinHeight(0);
+        text.setMinHeight(0);
 
     }
 
@@ -217,11 +254,37 @@ public class MainGuiController {
 
 
         gaRunButton.setOnAction(event -> {
+            visualizationCurrentGenerationSpinner.getValueFactory().setValue(session.getGeneticAlgorithm().getConfig().getIterationsPerRun());
+            visualizationCurrentDnaSpinner.getValueFactory().setValue(1);
+            onGAStart();
             session.runGA(result -> {
-                Platform.runLater(this::renderAll);
+                requestRenderAll();
             }).whenComplete((listRunResult, throwable) -> {
-                Platform.runLater(this::renderAll);
+                onGAEnd();
+
+                if (throwable != null) return;
+                visualizationCurrentGenerationSpinner.getValueFactory().setValue(Math.min(
+                        visualizationCurrentGenerationSpinner.getValue(),
+                        listRunResult.getGenerations().size()
+                ));
+                requestRenderAll();
             });
+        });
+
+        gaStopButton.setOnAction(event -> {
+            session.interruptRun();
+        });
+
+        gaResetConfig.setOnAction(event -> {
+            GAConfig newConfig = GAConfig.builder().build();
+            session.getGeneticAlgorithm().setConfig(newConfig);
+            gaMaxGenerations.getValueFactory().setValue(newConfig.getIterationsPerRun());
+            gaPopulationSize.getValueFactory().setValue(newConfig.getPopulationSize());
+            gaCopyBestRate.getValueFactory().setValue(newConfig.getCopyBestRate());
+            gaMutationRate.getValueFactory().setValue(newConfig.getMutationRate());
+            gaCrossoverRate.getValueFactory().setValue(newConfig.getCrossoverRate());
+            gaGenerationsDelay.getValueFactory().setValue(newConfig.getDelayBetweenGenerationsMs());
+            gaRandomSeed.getValueFactory().setValue(newConfig.getRandomSeed());
         });
 
         var config = session.getGeneticAlgorithm().getConfig();
@@ -231,6 +294,9 @@ public class MainGuiController {
         gaCopyBestRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getCopyBestRate(), 0.01));
         gaMutationRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getMutationRate(), 0.01));
         gaCrossoverRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getCrossoverRate(), 0.01));
+        gaGenerationsDelay.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 1000, config.getDelayBetweenGenerationsMs()));
+        gaRandomSeed.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, Integer.MAX_VALUE, config.getRandomSeed()));
+
 
         gaMaxGenerations.valueProperty().addListener((obs, oldVal, newVal) -> {
             session.getGeneticAlgorithm().getConfig().setIterationsPerRun(newVal);
@@ -252,19 +318,29 @@ public class MainGuiController {
             session.getGeneticAlgorithm().getConfig().setCrossoverRate(newVal);
         });
 
+        gaGenerationsDelay.valueProperty().addListener((obs, oldVal, newVal) -> {
+            session.getGeneticAlgorithm().getConfig().setDelayBetweenGenerationsMs(newVal);
+        });
+
+        gaRandomSeed.valueProperty().addListener((obs, oldVal, newVal) -> {
+            session.getGeneticAlgorithm().getConfig().setRandomSeed(newVal);
+        });
+
         gaMaxGenerations.setEditable(true);
         gaPopulationSize.setEditable(true);
         gaCopyBestRate.setEditable(true);
         gaMutationRate.setEditable(true);
         gaCrossoverRate.setEditable(true);
+        gaGenerationsDelay.setEditable(true);
+        gaRandomSeed.setEditable(true);
 
 
         visualizationCurrentGenerationSpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 10000, 2)
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, 2)
         );
         visualizationCurrentGenerationSpinner.setEditable(true);
         visualizationCurrentGenerationSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
-            renderAll();
+            requestRenderAll();
         });
 
         visualizationCurrentDnaSpinner.setValueFactory(
@@ -272,7 +348,7 @@ public class MainGuiController {
         );
         visualizationCurrentDnaSpinner.setEditable(true);
         visualizationCurrentDnaSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
-            renderAll();
+            requestRenderAll();
         });
 
         visualizationSkipToResultButton.setOnAction(event -> {
@@ -307,7 +383,7 @@ public class MainGuiController {
 
         controller.setup(sudokuTypeComboBox.getValue() == null ? session.getBoard().getType() : sudokuTypeComboBox.getValue(), sudokuMatrix -> {
             session.setBoard(sudokuMatrix);
-            renderAll();
+            requestRenderAll();
         });
 
         dialogStage.showAndWait();
@@ -358,6 +434,34 @@ public class MainGuiController {
         renderSudoku();
     }
 
+    private void onGAStart() {
+        gaStopButton.setDisable(false);
+        sudokuCreateButton.setDisable(true);
+        sudokuLoadButton.setDisable(true);
+        sudokuGenerateButton.setDisable(true);
+    }
+
+    private void onGAEnd() {
+        gaStopButton.setDisable(true);
+        sudokuCreateButton.setDisable(false);
+        sudokuLoadButton.setDisable(false);
+        sudokuGenerateButton.setDisable(false);
+    }
+
+    private void requestRenderAll() {
+        if (!renderQueued.compareAndSet(false, true)) {
+            return;
+        }
+
+        Platform.runLater(() -> {
+            try {
+                renderAll();
+            } finally {
+                renderQueued.set(false);
+            }
+        });
+    }
+
     private void renderAll() {
         renderGraph();
         renderSudoku();
@@ -366,6 +470,7 @@ public class MainGuiController {
         if (run == null) return;
 
         String text = """
+                Зерно генератора: %d
                 Поколение: %d
                 Лучший результат: %f
                 Средний результат: %f
@@ -381,7 +486,8 @@ public class MainGuiController {
         double median = generationDna.stream().mapToDouble(DNAScore::getScore).skip(generationDna.size() / 2).findFirst().orElseThrow();
 
 
-        this.text.setText(String.format(text, generation, score, average, median));
+        this.text.setText(String.format(text, run.getSeed(), generation, score, average, median));
+        this.text.setFont(Font.font(20));
     }
 
     private void renderGraph() {
@@ -395,12 +501,44 @@ public class MainGuiController {
         if (run != null) {
             int generations = Math.min(visualizationCurrentGenerationSpinner.getValue(), run.getBestPerGeneration().size());
 
-            int lowerBound = Math.max(0, generations - 500);
+            int lowerBound = Math.max(0, generations - 100000);
+
+            double lastScore = -1;
+
+
+            double rawStep = (generations - lowerBound) / (double) 20;
+
+            double stepPower = Math.pow(10, Math.floor(Math.log10(rawStep)));
+            double normalizedStep = rawStep / stepPower;
+
+            if (normalizedStep <= 1) {
+                normalizedStep = 1;
+            } else if (normalizedStep <= 2) {
+                normalizedStep = 2;
+            } else if (normalizedStep <= 5) {
+                normalizedStep = 5;
+            } else {
+                normalizedStep = 10;
+            }
+            graphXAxis.setTickUnit((int) (normalizedStep * stepPower));
+            graphXAxis.setMinorTickCount(0);
+
 
             for (int i = lowerBound; i < generations; i++) {
+                if (i % Math.max(1, i / 100) != 0 && i != generations - 1) {
+                    continue;
+                }
+
                 DNAScore<List<Integer>> score = run.getBestPerGeneration().get(i);
 
-                graphSeries.getData().add(new Data<>(i, score.getScore()));
+                double scoreVal = score.getScore();
+
+                if (scoreVal != lastScore || (i >= generations - 2) || run.getBestPerGeneration().get(i + 1).getScore() != lastScore) {
+
+                    graphSeries.getData().add(new Data<>(i, score.getScore()));
+
+                    lastScore = scoreVal;
+                }
             }
 
 
@@ -472,7 +610,7 @@ public class MainGuiController {
             for (int j = 0; j < board.getHeight(); j++) {
                 if (errorCells.contains(new SudokuCell(i, j))) {
                     gc.setFill(Color.RED);
-                    gc.fillRect(i * cellWidth, j * cellWidth, cellWidth, cellHeight);
+                    gc.fillRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
                 }
 
                 int number = board.getNumber(i, j);
@@ -498,21 +636,21 @@ public class MainGuiController {
         gc.setStroke(Color.BLACK);
 
         for (int i = 0; i < board.getWidth() + 1; i++) {
-            gc.setLineWidth(i % board.getType().getBlockWidth() == 0 ? 4 : 2);
+            gc.setLineWidth(i % board.getType().getBlockWidth() == 0 ? 2 : 1);
             gc.strokeLine(i * cellWidth, 0, i * cellWidth, h);
         }
 
         for (int j = 0; j < board.getHeight() + 1; j++) {
-            gc.setLineWidth(j % board.getType().getBlockHeight() == 0 ? 4 : 2);
+            gc.setLineWidth(j % board.getType().getBlockHeight() == 0 ? 2 : 1);
             gc.strokeLine(0, j * cellHeight, w, j * cellHeight);
         }
 
     }
 
-    private void bindCanvasSquareToColumn(Canvas canvas, Region canvasContainer, Region column, double minCanvasSize) {
-        NumberBinding availableHeight = column.heightProperty().subtract(GAP).subtract(MIN_BOTTOM_HEIGHT);
+    private void bindCanvasSquareToColumn(Canvas canvas, Region canvasContainer, Region column) {
+        NumberBinding availableHeight = column.heightProperty().multiply(0.55).subtract(GAP);
 
-        NumberBinding size = Bindings.max(minCanvasSize, Bindings.min(column.widthProperty(), availableHeight));
+        NumberBinding size = Bindings.min(column.widthProperty(), availableHeight);
 
         canvas.widthProperty().bind(size);
         canvas.heightProperty().bind(size);
@@ -520,25 +658,5 @@ public class MainGuiController {
         canvasContainer.prefHeightProperty().bind(size);
         canvasContainer.minHeightProperty().bind(size);
         canvasContainer.maxHeightProperty().bind(size);
-    }
-
-    private void installStageMinSize() {
-        root.sceneProperty().addListener((sceneObs, oldScene, newScene) -> {
-            if (newScene == null) {
-                return;
-            }
-
-            newScene.windowProperty().addListener((windowObs, oldWindow, newWindow) -> {
-                if (newWindow instanceof Stage stage) {
-                    Platform.runLater(() -> {
-                        double decorationWidth = stage.getWidth() - newScene.getWidth();
-                        double decorationHeight = stage.getHeight() - newScene.getHeight();
-
-                        stage.setMinWidth(MIN_SCENE_WIDTH + Math.max(0, decorationWidth));
-                        stage.setMinHeight(MIN_SCENE_HEIGHT + Math.max(0, decorationHeight));
-                    });
-                }
-            });
-        });
     }
 }

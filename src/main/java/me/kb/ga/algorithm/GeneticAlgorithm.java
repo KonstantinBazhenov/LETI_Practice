@@ -10,16 +10,14 @@ import me.kb.ga.data.RunResult;
 
 import java.security.InvalidParameterException;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @AllArgsConstructor
 @Getter
 @Setter
 public class GeneticAlgorithm<DNA> {
-    private @NonNull Random random;
     private @NonNull GAConfig config;
     private @NonNull GAInitializer<DNA> initializer;
     private @NonNull GACrossover<DNA> crossover;
@@ -28,100 +26,128 @@ public class GeneticAlgorithm<DNA> {
     private @NonNull GATask<DNA> task;
 
 
-    public RunResult<DNA> run() {
+    public RunResult<DNA> run() throws InterruptedException {
         return run(null);
     }
 
-    public RunResult<DNA> run(Consumer<RunResult<DNA>> iterationConsumer) {
+    public RunResult<DNA> run(Consumer<RunResult<DNA>> iterationConsumer) throws InterruptedException {
+        GAConfig config = this.config.toBuilder().build();
 
-        ExecutorService executor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() - 1, 1));
+        int seed = config.getRandomSeed() != 0 ? config.getRandomSeed() : ThreadLocalRandom.current().nextInt((int) Math.pow(10, 5));
+        Random random = new Random(seed);
+
+
+        ExecutorService executor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() - 1, 1), new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, "GA Eval");
+                t.setDaemon(true);
+                return t;
+            }
+        });
 
         if (!config.isValid()) {
             throw new InvalidParameterException("Invalid configuration");
         }
 
-        List<DNAScore<DNA>> bestPerGeneration = new ArrayList<>();
-        List<List<DNAScore<DNA>>> generations = new ArrayList<>();
+        try {
 
-        List<DNA> population = new ArrayList<>(initializer.init(random, config.getPopulationSize()));
-        population.replaceAll(dna -> task.tryCorrect(dna));
+            List<DNAScore<DNA>> bestPerGeneration = new ArrayList<>();
+            List<List<DNAScore<DNA>>> generations = new ArrayList<>();
+            Map<DNAScore<DNA>, DNAScore<DNA>> uniqueDNA = new HashMap<>();
 
-        DNAScore<DNA> currentBest = null;
-        int stagnationCount = 0;
+            List<DNA> population = new ArrayList<>(initializer.init(random, config.getPopulationSize()));
+            population.replaceAll(dna -> task.tryCorrect(dna));
 
-        for (int j = 0; j < config.getIterationsPerRun(); j++) {
+            DNAScore<DNA> currentBest = null;
+            int stagnationCount = 0;
 
-            List<DNAScore<DNA>> evaluated = evalAll(population, executor);
+            for (int j = 0; j < config.getIterationsPerRun(); j++) {
 
-            generations.add(evaluated);
+                List<DNAScore<DNA>> evaluated = evalAll(population, executor, config);
 
-            DNAScore<DNA> best = evaluated.get(0);
-
-            if (currentBest == null || best.getScore() > currentBest.getScore()) {
-                currentBest = best;
-                stagnationCount = 0;
-            } else {
-                stagnationCount++;
-            }
-
-            bestPerGeneration.add(best);
+                List<DNAScore<DNA>> deduped = evaluated.stream()
+                        .map(score -> uniqueDNA.computeIfAbsent(score, (key) -> score))
+                        .toList();
 
 
-            if (task.shouldStop(best)) {
-                break;
-            }
+                generations.add(deduped);
 
-            if (stagnationCount >= config.getStagnationGenerations()) {
-                int keep = Math.max(1, config.getStagnationKeep());
+                DNAScore<DNA> best = evaluated.get(0);
 
-                List<DNA> newPopulation = new ArrayList<>(evaluated.stream().limit(keep).map(DNAScore::getDna).toList());
-
-                List<DNA> newDna = new ArrayList<>(initializer.init(random, config.getPopulationSize() - newPopulation.size()));
-
-                newDna.replaceAll(task::tryCorrect);
-                newPopulation.addAll(newDna);
-
-                population = newPopulation;
-                stagnationCount = 0;
-            } else {
-
-                List<DNA> newPopulation = new ArrayList<>(evaluated.stream().distinct().limit(config.getCopyBest()).map(DNAScore::getDna).toList());
-
-                newPopulation.addAll(selector.select(random, evaluated, config.getPopulationSize() - newPopulation.size() - config.getCrossover()));
-
-                while (newPopulation.size() < config.getPopulationSize()) {
-                    int first = random.nextInt(newPopulation.size());
-                    int second = random.nextInt(newPopulation.size());
-
-
-                    crossover.crossover(random, newPopulation.get(first), newPopulation.get(second)).forEach(dna ->
-                            newPopulation.add(mutate.mutate(random, dna, config.getMutationRate())));
+                if (currentBest == null || best.getScore() > currentBest.getScore()) {
+                    currentBest = best;
+                    stagnationCount = 0;
+                } else {
+                    stagnationCount++;
                 }
 
-                while (newPopulation.size() > config.getPopulationSize()) {
-                    newPopulation.remove(newPopulation.size() - 1);
+                bestPerGeneration.add(best);
+
+
+                if (task.shouldStop(best)) {
+                    break;
                 }
 
-                newPopulation.replaceAll(dna -> task.tryCorrect(dna));
+                if (stagnationCount >= config.getStagnationGenerations()) {
+                    int keep = Math.max(1, config.getStagnationKeep());
 
-                population = newPopulation;
+                    List<DNA> newPopulation = new ArrayList<>(evaluated.stream().limit(keep).map(DNAScore::getDna).toList());
 
-                if (iterationConsumer != null) {
-                    iterationConsumer.accept(new RunResult<>(currentBest, bestPerGeneration, generations));
+                    List<DNA> newDna = new ArrayList<>(initializer.init(random, config.getPopulationSize() - newPopulation.size()));
+
+                    newDna.replaceAll(task::tryCorrect);
+                    newPopulation.addAll(newDna);
+
+                    population = newPopulation;
+                    stagnationCount = 0;
+                } else {
+
+                    List<DNA> newPopulation = new ArrayList<>(evaluated.stream().distinct().limit(config.getCopyBest()).map(DNAScore::getDna).toList());
+
+                    newPopulation.addAll(selector.select(random, evaluated, config.getPopulationSize() - newPopulation.size() - config.getCrossover()));
+
+                    while (newPopulation.size() < config.getPopulationSize()) {
+                        int first = random.nextInt(newPopulation.size());
+                        int second = random.nextInt(newPopulation.size());
+
+
+                        crossover.crossover(random, newPopulation.get(first), newPopulation.get(second)).forEach(dna ->
+                                newPopulation.add(mutate.mutate(random, dna, config.getMutationRate())));
+                    }
+
+                    while (newPopulation.size() > config.getPopulationSize()) {
+                        newPopulation.remove(newPopulation.size() - 1);
+                    }
+
+                    newPopulation.replaceAll(dna -> task.tryCorrect(dna));
+
+                    population = newPopulation;
+
+                    if (iterationConsumer != null) {
+                        iterationConsumer.accept(new RunResult<>(seed, currentBest, bestPerGeneration, generations));
+                    }
+
                 }
+
+                if (config.getDelayBetweenGenerationsMs() > 0) {
+                    Thread.sleep(config.getDelayBetweenGenerationsMs());
+                }
+
 
             }
-
-
+            return new RunResult<>(seed, currentBest, bestPerGeneration, generations);
+        } finally {
+            executor.shutdown();
         }
-
-
-        executor.shutdown();
-
-        return new RunResult<>(currentBest, bestPerGeneration, generations);
     }
 
-    private List<DNAScore<DNA>> evalAll(List<DNA> population, ExecutorService executor) {
+    private List<DNAScore<DNA>> evalAll(List<DNA> population, ExecutorService executor, GAConfig config) throws InterruptedException{
+        Map<DNA, Integer> populationIndex = new ConcurrentHashMap<>();
+        for (int i = 0; i < population.size(); i++) {
+            populationIndex.put(population.get(i), i);
+        }
+
         List<DNAScore<DNA>> evaluated = Collections.synchronizedList(new ArrayList<>());
         CountDownLatch latch = new CountDownLatch(population.size());
 
@@ -135,12 +161,9 @@ public class GeneticAlgorithm<DNA> {
             });
         }
 
-        try {
-            latch.await();
-        } catch (InterruptedException ignored) {
-        }
+        latch.await();
 
-        evaluated.sort(Comparator.comparingDouble(DNAScore<DNA>::getScore).reversed());
+        evaluated.sort(Comparator.comparingDouble(DNAScore<DNA>::getScore).reversed().thenComparingInt(dna -> populationIndex.get(dna.getDna())));
 
         /*
         for (int i = 0; i < population.size() - config.getSimilarityBatch(); i += config.getSimilarityBatch()) {

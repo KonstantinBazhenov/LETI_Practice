@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Random;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
 
         for (int i = 0; i < 10; i++) {
@@ -26,7 +26,6 @@ public class Main {
 
 
             GeneticAlgorithm<List<Integer>> geneticAlgorithm = new GeneticAlgorithm<>(
-                    new Random(),
                     GAConfig.builder()
                             .iterationsPerRun(3000)
                             .populationSize(500)

@@ -4,11 +4,20 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class SudokuArrayMatrix implements SudokuMatrix {
-    private final int[][] board;
+    private final byte[][] board;
+
+    public SudokuArrayMatrix(int[][] board) {
+        this.board = new byte[board.length][board[0].length];
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[0].length; j++) {
+                this.board[i][j] = (byte) board[i][j];
+            }
+        }
+    }
 
     @Override
     public void setNumber(int x, int y, int number) {
-        board[x][y] = number;
+        board[x][y] = (byte) number;
     }
 
     @Override
@@ -47,7 +56,7 @@ public class SudokuArrayMatrix implements SudokuMatrix {
     }
 
     public SudokuArrayMatrix copy() {
-        int[][] copyBoard = new int[getWidth()][getHeight()];
+        byte[][] copyBoard = new byte[getWidth()][getHeight()];
         for (int x = 0; x < getWidth(); x++) {
             if (getHeight() >= 0) System.arraycopy(board[x], 0, copyBoard[x], 0, getHeight());
         }

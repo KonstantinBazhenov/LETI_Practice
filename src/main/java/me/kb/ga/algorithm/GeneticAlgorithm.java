@@ -69,12 +69,16 @@ public class GeneticAlgorithm<DNA> {
 
                 DNAScore<DNA> best = evaluated.get(0);
 
+
+                if (currentBest != null && best.getScore() == currentBest.getScore()){
+                    stagnationCount++;
+                }
+
                 if (currentBest == null || best.getScore() > currentBest.getScore()) {
                     currentBest = best;
                     stagnationCount = 0;
-                } else {
-                    stagnationCount++;
                 }
+
 
                 bestPerGeneration.add(best);
 
@@ -84,7 +88,7 @@ public class GeneticAlgorithm<DNA> {
                 }
 
                 if (stagnationCount >= config.getStagnationGenerations()) {
-                    int keep = Math.max(1, config.getStagnationKeep());
+                    int keep = Math.max(0, config.getStagnationKeep());
 
                     List<DNA> newPopulation = new ArrayList<>(evaluated.stream().limit(keep).map(DNAScore::getDna).toList());
 

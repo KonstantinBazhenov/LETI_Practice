@@ -62,4 +62,17 @@ public class SudokuUtils {
 
         return board[x * height + y];
     }
+
+    public SudokuBoard boardFromList(byte[] numbers) {
+        SudokuBoard board = new SudokuBoard(SudokuType.getByBoardSize((int) Math.sqrt(numbers.length)));
+
+        for (int x = 0; x < board.getWidth(); x++) {
+            for (int y = 0; y < board.getHeight(); y++) {
+                int number = SudokuUtils.getNumberFromList(numbers, x, y);
+                board.setNumber(x, y, number, true, true);
+            }
+        }
+
+        return board;
+    }
 }

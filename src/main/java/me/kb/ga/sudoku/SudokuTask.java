@@ -2,6 +2,7 @@ package me.kb.ga.sudoku;
 
 import me.kb.ga.algorithm.GATask;
 import me.kb.ga.data.DNAScore;
+import me.kb.ga.data.SudokuCell;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -42,8 +43,7 @@ public class SudokuTask implements GATask<byte[]> {
 
     @Override
     public double eval(byte[] numbers) {
-        SudokuBoard board = new SudokuBoard(type);
-        setBoard(board, numbers);
+        SudokuBoard board = SudokuUtils.boardFromList(numbers);
         return Math.exp(-0.1 * board.countUniqueErrors());
     }
 
@@ -111,16 +111,4 @@ public class SudokuTask implements GATask<byte[]> {
         return SudokuUtils.getSimilarityScore(dna1, dna2);
     }
 
-
-    private void setBoard(SudokuBoard sudokuBoard, byte[] numbers) {
-        if (numbers.length != (type.getSize() * type.getSize()))
-            throw new IllegalArgumentException("Invalid number count");
-
-        for (int x = 0; x < sudokuBoard.getWidth(); x++) {
-            for (int y = 0; y < sudokuBoard.getHeight(); y++) {
-                int number = SudokuUtils.getNumberFromList(numbers, x, y);
-                sudokuBoard.setNumber(x, y, number, true, true);
-            }
-        }
-    }
 }

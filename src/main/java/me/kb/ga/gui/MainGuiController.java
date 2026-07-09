@@ -25,6 +25,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import me.kb.ga.data.DNAScore;
 import me.kb.ga.data.GAConfig;
@@ -42,6 +43,10 @@ import java.net.URL;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 @RequiredArgsConstructor
 public class MainGuiController {
@@ -55,7 +60,7 @@ public class MainGuiController {
     @FXML
     private VBox leftColumn;
     @FXML
-    private VBox rightColumn;
+    private GridPane rightColumn;
     @FXML
     private StackPane graphContainer;
     @FXML
@@ -121,6 +126,24 @@ public class MainGuiController {
     private Spinner<Integer> gaRandomSeed;
 
     @FXML
+    private Spinner<Integer> gaStagnationGenerations;
+
+    @FXML
+    private Spinner<Double> gaStagnationKeepRate;
+
+    @FXML
+    private Spinner<Double> gaSimilarityPunishment;
+
+    @FXML
+    private Spinner<Integer> gaSimilarityCompare;
+
+    @FXML
+    private Spinner<Integer> gaSimilaritySkip;
+
+    @FXML
+    private Spinner<Double> gaSimilarityThreshold;
+
+    @FXML
     private Button gaResetConfig;
 
     @FXML
@@ -133,7 +156,6 @@ public class MainGuiController {
     private Button visualizationSkipToResultButton;
 
     private final AtomicBoolean renderQueued = new AtomicBoolean(false);
-
 
     @FXML
     private void initialize() {
@@ -190,6 +212,31 @@ public class MainGuiController {
             renderGraph();
             renderSudoku();
         });
+    }
+
+    @AllArgsConstructor
+    private static class ConfigEntry<T> {
+        private Spinner<T> spinner;
+        private BiConsumer<GAConfig, T> configSetter;
+        private Function<GAConfig, T> configGetter;
+        Function<T, SpinnerValueFactory<T>> valueFactory;
+
+        public void setSpinnerValue(GAConfig config) {
+            spinner.getValueFactory().setValue(configGetter.apply(config));
+        }
+
+        public void updateFromSpinnerValue(GAConfig config) {
+            T value = spinner.getValue();
+            configSetter.accept(config, value);
+        }
+
+        public void setup(GAConfig config) {
+            spinner.setValueFactory(valueFactory.apply(configGetter.apply(config)));
+            spinner.valueProperty().addListener((obs, oldVal, newVal) -> {
+               configSetter.accept(config, newVal);
+            });
+            spinner.setEditable(true);
+        }
     }
 
     private void setupConfig() {
@@ -253,6 +300,35 @@ public class MainGuiController {
         sudokuSaveButton.setOnAction(event -> saveSudoku());
 
 
+        List<ConfigEntry<?>> gaEntries = List.of(
+                new ConfigEntry<>(gaMaxGenerations, GAConfig::setIterationsPerRun, GAConfig::getIterationsPerRun,
+                        (v) -> new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1000000, v)),
+                new ConfigEntry<>(gaPopulationSize, GAConfig::setPopulationSize, GAConfig::getPopulationSize,
+                        (v) -> new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, v)),
+                new ConfigEntry<>(gaCopyBestRate, GAConfig::setCopyBestRate, GAConfig::getCopyBestRate,
+                        (v) -> new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, v, 0.01)),
+                new ConfigEntry<>(gaMutationRate, GAConfig::setMutationRate, GAConfig::getMutationRate,
+                        (v) -> new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, v, 0.01)),
+                new ConfigEntry<>(gaCrossoverRate, GAConfig::setCrossoverRate, GAConfig::getCrossoverRate,
+                        (v) -> new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, v, 0.01)),
+                new ConfigEntry<>(gaGenerationsDelay, GAConfig::setDelayBetweenGenerationsMs, GAConfig::getDelayBetweenGenerationsMs,
+                        (v) -> new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 1000, v)),
+                new ConfigEntry<>(gaRandomSeed, GAConfig::setRandomSeed, GAConfig::getRandomSeed,
+                        (v) -> new SpinnerValueFactory.IntegerSpinnerValueFactory(0, Integer.MAX_VALUE, v)),
+                new ConfigEntry<>(gaStagnationGenerations, GAConfig::setStagnationGenerations, GAConfig::getStagnationGenerations,
+                        v -> new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100_000, v)),
+                new ConfigEntry<>(gaStagnationKeepRate, GAConfig::setStagnationKeepRate, GAConfig::getStagnationKeepRate,
+                        v -> new SpinnerValueFactory.DoubleSpinnerValueFactory(0.0, 1.0, v, 0.01)),
+                new ConfigEntry<>(gaSimilarityPunishment, GAConfig::setSimilarityPunishment, GAConfig::getSimilarityPunishment,
+                        v -> new SpinnerValueFactory.DoubleSpinnerValueFactory(0.0, 100.0, v, 0.1)),
+                new ConfigEntry<>(gaSimilarityCompare, GAConfig::setSimilarityCompare, GAConfig::getSimilarityCompare,
+                        v -> new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 10000, v)),
+                new ConfigEntry<>(gaSimilaritySkip, GAConfig::setSimilaritySkip, GAConfig::getSimilaritySkip,
+                        v -> new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 10000, v)),
+                new ConfigEntry<>(gaSimilarityThreshold, GAConfig::setSimilarityThreshold, GAConfig::getSimilarityThreshold,
+                        v -> new SpinnerValueFactory.DoubleSpinnerValueFactory(0.0, 1.0, v, 0.01))
+        );
+
         gaRunButton.setOnAction(event -> {
             visualizationCurrentGenerationSpinner.getValueFactory().setValue(session.getGeneticAlgorithm().getConfig().getIterationsPerRun());
             visualizationCurrentDnaSpinner.getValueFactory().setValue(1);
@@ -283,65 +359,19 @@ public class MainGuiController {
         gaResetConfig.setOnAction(event -> {
             GAConfig newConfig = GAConfig.builder().build();
             session.getGeneticAlgorithm().setConfig(newConfig);
-            gaMaxGenerations.getValueFactory().setValue(newConfig.getIterationsPerRun());
-            gaPopulationSize.getValueFactory().setValue(newConfig.getPopulationSize());
-            gaCopyBestRate.getValueFactory().setValue(newConfig.getCopyBestRate());
-            gaMutationRate.getValueFactory().setValue(newConfig.getMutationRate());
-            gaCrossoverRate.getValueFactory().setValue(newConfig.getCrossoverRate());
-            gaGenerationsDelay.getValueFactory().setValue(newConfig.getDelayBetweenGenerationsMs());
-            gaRandomSeed.getValueFactory().setValue(newConfig.getRandomSeed());
+
+            gaEntries.forEach(configEntry -> configEntry.setSpinnerValue(newConfig));
         });
 
         var config = session.getGeneticAlgorithm().getConfig();
 
-        gaMaxGenerations.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, config.getIterationsPerRun()));
-        gaPopulationSize.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, config.getPopulationSize()));
-        gaCopyBestRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getCopyBestRate(), 0.01));
-        gaMutationRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getMutationRate(), 0.01));
-        gaCrossoverRate.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 1, config.getCrossoverRate(), 0.01));
-        gaGenerationsDelay.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 1000, config.getDelayBetweenGenerationsMs()));
-        gaRandomSeed.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, Integer.MAX_VALUE, config.getRandomSeed()));
-
-
-        gaMaxGenerations.valueProperty().addListener((obs, oldVal, newVal) -> {
-            session.getGeneticAlgorithm().getConfig().setIterationsPerRun(newVal);
+        gaEntries.forEach(configEntry -> {
+           configEntry.setup(config);
         });
-
-        gaPopulationSize.valueProperty().addListener((obs, oldVal, newVal) -> {
-            session.getGeneticAlgorithm().getConfig().setPopulationSize(newVal);
-        });
-
-        gaCopyBestRate.valueProperty().addListener((obs, oldVal, newVal) -> {
-            session.getGeneticAlgorithm().getConfig().setCopyBestRate(newVal);
-        });
-
-        gaMutationRate.valueProperty().addListener((obs, oldVal, newVal) -> {
-            session.getGeneticAlgorithm().getConfig().setMutationRate(newVal);
-        });
-
-        gaCrossoverRate.valueProperty().addListener((obs, oldVal, newVal) -> {
-            session.getGeneticAlgorithm().getConfig().setCrossoverRate(newVal);
-        });
-
-        gaGenerationsDelay.valueProperty().addListener((obs, oldVal, newVal) -> {
-            session.getGeneticAlgorithm().getConfig().setDelayBetweenGenerationsMs(newVal);
-        });
-
-        gaRandomSeed.valueProperty().addListener((obs, oldVal, newVal) -> {
-            session.getGeneticAlgorithm().getConfig().setRandomSeed(newVal);
-        });
-
-        gaMaxGenerations.setEditable(true);
-        gaPopulationSize.setEditable(true);
-        gaCopyBestRate.setEditable(true);
-        gaMutationRate.setEditable(true);
-        gaCrossoverRate.setEditable(true);
-        gaGenerationsDelay.setEditable(true);
-        gaRandomSeed.setEditable(true);
 
 
         visualizationCurrentGenerationSpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, 2)
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1000000, 2)
         );
         visualizationCurrentGenerationSpinner.setEditable(true);
         visualizationCurrentGenerationSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -349,7 +379,7 @@ public class MainGuiController {
         });
 
         visualizationCurrentDnaSpinner.setValueFactory(
-                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 10000, 1)
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, 1)
         );
         visualizationCurrentDnaSpinner.setEditable(true);
         visualizationCurrentDnaSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -441,6 +471,7 @@ public class MainGuiController {
 
     private void onGAStart() {
         gaStopButton.setDisable(false);
+        gaRunButton.setDisable(true);
         sudokuCreateButton.setDisable(true);
         sudokuLoadButton.setDisable(true);
         sudokuGenerateButton.setDisable(true);
@@ -448,6 +479,7 @@ public class MainGuiController {
 
     private void onGAEnd() {
         gaStopButton.setDisable(true);
+        gaRunButton.setDisable(false);
         sudokuCreateButton.setDisable(false);
         sudokuLoadButton.setDisable(false);
         sudokuGenerateButton.setDisable(false);
@@ -477,9 +509,11 @@ public class MainGuiController {
         String text = """
                 Зерно генератора: %d
                 Поколение: %d
-                Лучший результат: %f
-                Средний результат: %f
+                Лучший результат: %f (Ошибок: %d)
                 Медианный результат: %f
+                Средний результат: %f
+                
+                Результат выбранного: %f (Ошибок: %d)
                 """;
 
         int generation = Math.min(visualizationCurrentGenerationSpinner.getValue(), run.getBestPerGeneration().size());
@@ -490,9 +524,21 @@ public class MainGuiController {
         double average = generationDna.stream().mapToDouble(DNAScore::getScore).average().orElseThrow();
         double median = generationDna.stream().mapToDouble(DNAScore::getScore).skip(generationDna.size() / 2).findFirst().orElseThrow();
 
+        SudokuBoard topBoard = SudokuUtils.boardFromList(run.getBestPerGeneration().get(generation - 1).getDna());
 
-        this.text.setText(String.format(text, run.getSeed(), generation, score, average, median));
-        this.text.setFont(Font.font(20));
+        DNAScore<byte[]> viewing = getViewingDNA();
+        double viewingScore = 0;
+        int viewingErrors = 0;
+
+        if (viewing != null) {
+            SudokuBoard viewingBoard = SudokuUtils.boardFromList(viewing.getDna());
+
+            viewingErrors = viewingBoard.countUniqueErrors();
+            viewingScore = viewing.getScore();
+
+        }
+
+        this.text.setText(String.format(text, run.getSeed(), generation, score, topBoard.countUniqueErrors(), median, average, viewingScore, viewingErrors));
     }
 
     private void renderGraph() {
@@ -530,15 +576,16 @@ public class MainGuiController {
 
 
             for (int i = lowerBound; i < generations; i++) {
-                if (i % Math.max(1, i / 100) != 0 && i != generations - 1) {
-                    continue;
-                }
-
                 DNAScore<byte[]> score = run.getBestPerGeneration().get(i);
 
                 double scoreVal = score.getScore();
+                double nextScoreVal = (i == generations - 1) ? scoreVal : run.getBestPerGeneration().get(i + 1).getScore();
 
-                if (scoreVal != lastScore || (i >= generations - 2) || run.getBestPerGeneration().get(i + 1).getScore() != lastScore) {
+                if (i % Math.max(1, i / 100) != 0 && i < generations - 2 && scoreVal != lastScore && nextScoreVal != scoreVal) {
+                    continue;
+                }
+
+                if (scoreVal != lastScore || (i >= generations - 2) || nextScoreVal != scoreVal) {
 
                     graphSeries.getData().add(new Data<>(i, score.getScore()));
 
@@ -575,18 +622,9 @@ public class MainGuiController {
         double cellHeight = h / board.getHeight();
 
         gc.setFont(Font.font(cellHeight * 0.6));
-        RunResult<byte[]> result = session.getLastResult();
 
-        DNAScore<byte[]> viewingDNA;
 
-        if (result == null || session.isLastResultOutdated()) {
-            viewingDNA = null;
-        } else {
-            int currentGeneration = Math.min(visualizationCurrentGenerationSpinner.getValue() - 1, result.getBestPerGeneration().size() - 1);
-            List<DNAScore<byte[]>> dna = result.getGenerations().get(currentGeneration);
-
-            viewingDNA = dna.get(Math.clamp(visualizationCurrentDnaSpinner.getValue() - 1, 0, dna.size() - 1));
-        }
+        DNAScore<byte[]> viewingDNA = getViewingDNA();
 
         SudokuMatrixView view = new SudokuMatrixView() {
             @Override
@@ -650,6 +688,18 @@ public class MainGuiController {
             gc.strokeLine(0, j * cellHeight, w, j * cellHeight);
         }
 
+    }
+
+    private DNAScore<byte[]> getViewingDNA() {
+        RunResult<byte[]> result = session.getLastResult();
+        if (result == null || session.isLastResultOutdated()) {
+            return null;
+        } else {
+            int currentGeneration = Math.min(visualizationCurrentGenerationSpinner.getValue() - 1, result.getBestPerGeneration().size() - 1);
+            List<DNAScore<byte[]>> dna = result.getGenerations().get(currentGeneration);
+
+            return dna.get(Math.clamp(visualizationCurrentDnaSpinner.getValue() - 1, 0, dna.size() - 1));
+        }
     }
 
     private void bindCanvasSquareToColumn(Canvas canvas, Region canvasContainer, Region column) {

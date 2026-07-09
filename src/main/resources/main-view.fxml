@@ -51,11 +51,15 @@
         </StackPane>
     </VBox>
 
-    <VBox fx:id="rightColumn" maxHeight="Infinity" maxWidth="Infinity" spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+    <GridPane fx:id="rightColumn" maxHeight="Infinity" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0">
+        <rowConstraints>
+            <RowConstraints percentHeight="30.0" />
+            <RowConstraints percentHeight="70.0" />
+        </rowConstraints>
 
-        <TextArea fx:id="text" editable="false" maxHeight="Infinity" maxWidth="Infinity" wrapText="true" VBox.vgrow="ALWAYS" />
+        <TextArea fx:id="text" editable="false" maxHeight="Infinity" maxWidth="Infinity" wrapText="true" VBox.vgrow="ALWAYS" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
 
-        <TabPane fx:id="config" maxHeight="Infinity" maxWidth="Infinity" style="-fx-background-color: #AFAFAF;" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+        <TabPane fx:id="config" maxHeight="Infinity" maxWidth="Infinity" style="-fx-background-color: #AFAFAF;" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" GridPane.columnIndex="0" GridPane.rowIndex="1">
             <Tab text="Судоку">
                 <content>
                     <ScrollPane fitToWidth="true">
@@ -76,7 +80,7 @@
                 <content>
                     <ScrollPane fitToWidth="true">
                         <VBox spacing="10.0" style="-fx-padding: 10;">
-                            <Button fx:id="gaRunButton" text="Перезапустить алгоритм" />
+                            <Button fx:id="gaRunButton" text="Запустить алгоритм" />
                             <Button fx:id="gaStopButton" text="Остановить алгоритм" />
                             <Label text="Зерно генератора (0 - случайное)" />
                             <Spinner fx:id="gaRandomSeed" />
@@ -90,6 +94,18 @@
                             <Spinner fx:id="gaMutationRate" />
                             <Label text="Вероятность скрещивания" />
                             <Spinner fx:id="gaCrossoverRate" />
+                            <Label text="Поколений до стагнации" />
+                            <Spinner fx:id="gaStagnationGenerations" />
+                            <Label text="Доля сохраняемых при стагнации" />
+                            <Spinner fx:id="gaStagnationKeepRate" />
+                            <Label text="Штраф за схожесть" />
+                            <Spinner fx:id="gaSimilarityPunishment" />
+                            <Label text="Топ лучших для сравнения" />
+                            <Spinner fx:id="gaSimilarityCompare" />
+                            <Label text="Топ лучших без штрафа" />
+                            <Spinner fx:id="gaSimilaritySkip" />
+                            <Label text="Порог схожести" />
+                            <Spinner fx:id="gaSimilarityThreshold" />
                             <Label text="Задержка между поколениями (мс)" />
                             <Spinner fx:id="gaGenerationsDelay" />
                             <Button fx:id="gaResetConfig" text="Сбросить конфигурацию" />
@@ -111,6 +127,6 @@
                 </content>
             </Tab>
         </TabPane>
-    </VBox>
+    </GridPane>
 
 </GridPane>

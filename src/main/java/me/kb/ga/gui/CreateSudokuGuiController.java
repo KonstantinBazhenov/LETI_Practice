@@ -1,6 +1,9 @@
 package me.kb.ga.gui;
 
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleExpression;
+import javafx.beans.binding.NumberBinding;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
@@ -8,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import me.kb.ga.sudoku.SudokuBoard;
 import me.kb.ga.sudoku.SudokuType;
@@ -27,11 +31,10 @@ public class CreateSudokuGuiController {
     private Button cancelButton;
 
     @FXML
+    private StackPane sudokuStackPane;
+
+    @FXML
     private GridPane sudokuBoard;
-
-    private SudokuType type;
-
-    private Consumer<SudokuArrayMatrix> onDone;
 
     private TextField[][] cells;
 
@@ -42,88 +45,84 @@ public class CreateSudokuGuiController {
 
 
     public void setup(SudokuType type, Consumer<SudokuArrayMatrix> onDone) {
-        this.type = type;
-        this.onDone = onDone;
 
-        Platform.runLater(() -> {
+        this.sudokuBoard.getChildren().clear();
+        this.sudokuBoard.getColumnConstraints().clear();
+        this.sudokuBoard.getRowConstraints().clear();
 
-            this.sudokuBoard.getChildren().clear();
-            this.sudokuBoard.getColumnConstraints().clear();
-            this.sudokuBoard.getRowConstraints().clear();
 
-            this.cells = new TextField[type.getSize()][type.getSize()];
+        this.cells = new TextField[type.getSize()][type.getSize()];
 
-            Set<String> allowedText = new HashSet<>();
-            allowedText.add("");
-            for (int i = 1; i <= type.getSize(); i++) {
-                allowedText.add(String.valueOf(i));
+        Set<String> allowedText = new HashSet<>();
+        allowedText.add("");
+        for (int i = 1; i <= type.getSize(); i++) {
+            allowedText.add(String.valueOf(i));
+        }
+
+        for (int x = 0; x < type.getSize(); x++) {
+            for (int y = 0; y < type.getSize(); y++) {
+                TextField cell = new TextField();
+                cell.setPrefSize(40, 40);
+                cell.setAlignment(Pos.CENTER);
+
+                cell.setTextFormatter(new TextFormatter<>(change -> {
+                    String text = change.getControlNewText();
+
+
+                    if (!allowedText.contains(text)) {
+                        return null;
+                    }
+
+                    return change;
+                }));
+
+                cells[x][y] = cell;
+
+                sudokuBoard.add(cell, x, y);
             }
+        }
+
+
+        doneButton.setOnAction(event -> {
+            int[][] board = new int[type.getSize()][type.getSize()];
+
 
             for (int x = 0; x < type.getSize(); x++) {
                 for (int y = 0; y < type.getSize(); y++) {
-                    TextField cell = new TextField();
-                    cell.setPrefSize(40, 40);
-                    cell.setAlignment(Pos.CENTER);
+                    String value = cells[x][y].getText();
 
-                    cell.setTextFormatter(new TextFormatter<>(change -> {
-                        String text = change.getControlNewText();
-
-
-                        if (!allowedText.contains(text)) {
-                            return null;
-                        }
-
-                        return change;
-                    }));
-
-                    cells[x][y] = cell;
-
-                    sudokuBoard.add(cell, x, y);
+                    if (value != null && !value.isBlank()) {
+                        try {
+                            board[x][y] = Integer.parseInt(value);
+                        } catch (NumberFormatException ignored) {}
+                    }
                 }
             }
 
 
-            doneButton.setOnAction(event -> {
-                int[][] board = new int[type.getSize()][type.getSize()];
+            SudokuArrayMatrix matrix = new SudokuArrayMatrix(board);
+
+            SudokuBoard sudokuBoard = new SudokuBoard(matrix);
+
+            if (!sudokuBoard.isValid()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Ошибка");
+                alert.setHeaderText(null);
+                alert.setContentText("Введенное судоку некорректно");
+                alert.showAndWait();
+                return;
+            }
+
+            onDone.accept(matrix);
 
 
-                for (int x = 0; x < type.getSize(); x++) {
-                    for (int y = 0; y < type.getSize(); y++) {
-                        String value = cells[x][y].getText();
+            Stage stage = (Stage) doneButton.getScene().getWindow();
+            stage.close();
+        });
 
-                        if (value != null && !value.isBlank()) {
-                            try {
-                                board[x][y] = Integer.parseInt(value);
-                            } catch (NumberFormatException ignored) {}
-                        }
-                    }
-                }
-
-
-                SudokuArrayMatrix matrix = new SudokuArrayMatrix(board);
-
-                SudokuBoard sudokuBoard = new SudokuBoard(matrix);
-
-                if (!sudokuBoard.isValid()) {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Ошибка");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Введенное судоку некорректно");
-                    alert.showAndWait();
-                    return;
-                }
-
-                onDone.accept(matrix);
-
-
-                Stage stage = (Stage) doneButton.getScene().getWindow();
-                stage.close();
-            });
-
-            cancelButton.setOnAction(event -> {
-                Stage stage = (Stage) doneButton.getScene().getWindow();
-                stage.close();
-            });
+        cancelButton.setOnAction(event -> {
+            Stage stage = (Stage) doneButton.getScene().getWindow();
+            stage.close();
         });
     }
 

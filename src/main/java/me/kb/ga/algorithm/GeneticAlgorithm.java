@@ -12,7 +12,6 @@ import java.security.InvalidParameterException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 @AllArgsConstructor
 @Getter
@@ -37,7 +36,7 @@ public class GeneticAlgorithm<DNA> {
         Random random = new Random(seed);
 
 
-        ExecutorService executor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors() - 1, 1), new ThreadFactory() {
+        ExecutorService executor = Executors.newFixedThreadPool(Math.max(Runtime.getRuntime().availableProcessors(), 1), new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r, "GA Eval");
@@ -61,7 +60,7 @@ public class GeneticAlgorithm<DNA> {
             DNAScore<DNA> currentBest = null;
             int stagnationCount = 0;
 
-            for (int j = 0; j < config.getIterationsPerRun(); j++) {
+            for (int j = 0; j < config.getGenerations(); j++) {
 
                 List<DNAScore<DNA>> evaluated = evalAll(population, executor, config);
 

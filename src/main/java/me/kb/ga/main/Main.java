@@ -9,7 +9,6 @@ import me.kb.ga.data.GAConfig;
 import me.kb.ga.data.RunResult;
 import me.kb.ga.sudoku.*;
 
-import java.util.List;
 import java.util.Random;
 
 public class Main {
@@ -27,7 +26,7 @@ public class Main {
 
             GeneticAlgorithm<byte[]> geneticAlgorithm = new GeneticAlgorithm<>(
                     GAConfig.builder()
-                            .iterationsPerRun(3000)
+                            .generations(3000)
                             .populationSize(500)
                             .mutationRate(0.09)
                             .crossoverRate(0.75)

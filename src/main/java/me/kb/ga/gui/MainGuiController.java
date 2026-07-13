@@ -44,9 +44,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 @RequiredArgsConstructor
 public class MainGuiController {
@@ -235,6 +233,16 @@ public class MainGuiController {
             spinner.valueProperty().addListener((obs, oldVal, newVal) -> {
                configSetter.accept(config, newVal);
             });
+
+            spinner.getEditor().setTextFormatter(new TextFormatter<>(change -> {
+                try {
+                    spinner.getValueFactory().getConverter().fromString(change.getControlNewText());
+                    return change;
+                } catch (RuntimeException exception) {
+                    return null;
+                }
+            }));
+
             spinner.setEditable(true);
         }
     }
@@ -301,7 +309,7 @@ public class MainGuiController {
 
 
         List<ConfigEntry<?>> gaEntries = List.of(
-                new ConfigEntry<>(gaMaxGenerations, GAConfig::setIterationsPerRun, GAConfig::getIterationsPerRun,
+                new ConfigEntry<>(gaMaxGenerations, GAConfig::setGenerations, GAConfig::getGenerations,
                         (v) -> new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1000000, v)),
                 new ConfigEntry<>(gaPopulationSize, GAConfig::setPopulationSize, GAConfig::getPopulationSize,
                         (v) -> new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100000, v)),
@@ -330,7 +338,7 @@ public class MainGuiController {
         );
 
         gaRunButton.setOnAction(event -> {
-            visualizationCurrentGenerationSpinner.getValueFactory().setValue(session.getGeneticAlgorithm().getConfig().getIterationsPerRun());
+            visualizationCurrentGenerationSpinner.getValueFactory().setValue(session.getGeneticAlgorithm().getConfig().getGenerations());
             visualizationCurrentDnaSpinner.getValueFactory().setValue(1);
             onGAStart();
             session.runGA(result -> {
@@ -390,7 +398,7 @@ public class MainGuiController {
             visualizationCurrentDnaSpinner.getValueFactory().setValue(1);
 
             int lastGeneration = session.getLastResult() == null
-                    ? session.getGeneticAlgorithm().getConfig().getIterationsPerRun()
+                    ? session.getGeneticAlgorithm().getConfig().getGenerations()
                     : session.getLastResult().getGenerations().size();
             visualizationCurrentGenerationSpinner.getValueFactory().setValue(lastGeneration);
         });
@@ -421,6 +429,9 @@ public class MainGuiController {
             requestRenderAll();
         });
 
+        dialogStage.sizeToScene();
+        dialogStage.setResizable(false);
+
         dialogStage.showAndWait();
     }
 
@@ -442,7 +453,11 @@ public class MainGuiController {
         try {
             jsonMapper.writerWithDefaultPrettyPrinter().writeValue(file, session.getBoard().toJson());
         } catch (Exception e) {
-            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Ошибка записи");
+            alert.setHeaderText(null);
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
         }
     }
 
@@ -463,7 +478,11 @@ public class MainGuiController {
         try {
             session.setBoard(SudokuBoard.fromJson(jsonMapper.readTree(file)));
         } catch (Exception e) {
-            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Ошибка чтения");
+            alert.setHeaderText(null);
+            alert.setContentText(e.getMessage());
+            alert.showAndWait();
         }
 
         renderSudoku();

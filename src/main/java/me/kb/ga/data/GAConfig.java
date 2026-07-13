@@ -1,7 +1,6 @@
 package me.kb.ga.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,7 +18,7 @@ public class GAConfig {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Builder.Default
-    private int iterationsPerRun = 1500;
+    private int generations = 1500;
     @Builder.Default
     private int populationSize = 500;
     @Builder.Default
